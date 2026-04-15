@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LingōDate — Conecta sin fronteras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300..700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   ART DIRECTION: Conexión romántica global + IA moderna
+   Palette: Warm deep navy + coral/rose accent + gold moments
+   Typography: Instrument Serif (display) + DM Sans (body)
+   Density: Spacious, expressive, mobile-first
+   ============================================================ */
+
+:root, [data-theme="light"] {
+  --color-bg:             #f7f5f2;
+  --color-surface:        #faf9f7;
+  --color-surface-2:      #fdfcfb;
+  --color-surface-offset: #ede9e4;
+  --color-surface-dynamic:#e4dfd8;
+  --color-divider:        #dbd5cd;
+  --color-border:         #d1cac1;
+  --color-text:           #1e1a14;
+  --color-text-muted:     #7a7268;
+  --color-text-faint:     #b8b0a4;
+  --color-text-inverse:   #faf9f7;
+  --color-primary:        #c8415a;
+  --color-primary-hover:  #a83048;
+  --color-primary-active: #8a2038;
+  --color-primary-highlight: #f0dce0;
+  --color-gold:           #c9820c;
+  --color-gold-hover:     #a8660a;
+  --color-gold-highlight: #f2e4ce;
+  --color-success:        #2e7d52;
+  --color-success-highlight: #d2eddf;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 60 / 0.06);
+  --shadow-md: 0 4px 12px oklch(0.2 0.01 60 / 0.09);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.01 60 / 0.13);
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+  --text-2xl:  clamp(2rem,     1.2rem  + 2.5vw,  3.5rem);
+  --text-hero: clamp(3rem,     0.5rem  + 7vw,    7rem);
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem; --space-20: 5rem; --space-24: 6rem;
+  --content-narrow: 640px; --content-default: 960px; --content-wide: 1200px;
+}
+
+[data-theme="dark"] {
+  --color-bg:             #110e0b;
+  --color-surface:        #171310;
+  --color-surface-2:      #1c1814;
+  --color-surface-offset: #1f1b17;
+  --color-surface-dynamic:#272118;
+  --color-divider:        #2a2420;
+  --color-border:         #35302a;
+  --color-text:           #f0ebe3;
+  --color-text-muted:     #8a8278;
+  --color-text-faint:     #5a5550;
+  --color-text-inverse:   #1a1510;
+  --color-primary:        #f07585;
+  --color-primary-hover:  #e0556a;
+  --color-primary-active: #cc3d55;
+  --color-primary-highlight: #3d1e24;
+  --color-gold:           #f0b050;
+  --color-gold-hover:     #e09840;
+  --color-gold-highlight: #3a2e18;
+  --color-success:        #5aad7a;
+  --color-success-highlight: #1a3328;
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.25);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.5);
+}
+
+@media (prefers-color-scheme: light) { :root:not([data-theme]) {
+  --color-bg: #f7f5f2; --color-surface: #faf9f7; --color-surface-2: #fdfcfb;
+  --color-surface-offset: #ede9e4; --color-surface-dynamic: #e4dfd8;
+  --color-divider: #dbd5cd; --color-border: #d1cac1;
+  --color-text: #1e1a14; --color-text-muted: #7a7268; --color-text-faint: #b8b0a4;
+  --color-text-inverse: #faf9f7; --color-primary: #c8415a; --color-primary-hover: #a83048;
+  --color-primary-highlight: #f0dce0; --color-gold: #c9820c; --color-gold-highlight: #f2e4ce;
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 60 / 0.06); --shadow-md: 0 4px 12px oklch(0.2 0.01 60 / 0.09);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.01 60 / 0.13);
+}}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; scroll-padding-top: 5rem; }
+body { min-height: 100dvh; line-height: 1.6; font-family: var(--font-body); font-size: var(--text-base); color: var(--color-text); background-color: var(--color-bg); transition: background-color 0.3s, color 0.3s; }
+img, picture, video, canvas, svg { display: block; max-width: 100%; height: auto; }
+ul[role="list"], ol[role="list"] { list-style: none; }
+input, button, textarea, select { font: inherit; color: inherit; }
+h1,h2,h3,h4,h5,h6 { text-wrap: balance; line-height: 1.15; }
+p, li { text-wrap: pretty; }
+button { cursor: pointer; background: none; border: none; }
+a, button, [role="button"], input, textarea { transition: color var(--transition-interactive), background var(--transition-interactive), border-color var(--transition-interactive), box-shadow var(--transition-interactive); }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+::selection { background: oklch(from var(--color-primary) l c h / 0.2); color: var(--color-text); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+/* ====== UTILITIES ====== */
+.container { max-width: var(--content-default); margin-inline: auto; padding-inline: var(--space-6); }
+.container-wide { max-width: var(--content-wide); margin-inline: auto; padding-inline: var(--space-6); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+
+/* ====== NAV ====== */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: oklch(from var(--color-bg) l c h / 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid oklch(from var(--color-text) l c h / 0.07);
+  padding: var(--space-4) 0;
+}
+.nav-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); max-width: var(--content-wide); margin-inline: auto; padding-inline: var(--space-6); }
+.logo { display: flex; align-items: center; gap: var(--space-2); text-decoration: none; color: var(--color-text); font-family: var(--font-display); font-size: var(--text-lg); font-style: italic; }
+.logo svg { color: var(--color-primary); }
+.nav-actions { display: flex; align-items: center; gap: var(--space-3); }
+.btn-ghost { font-size: var(--text-sm); color: var(--color-text-muted); padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); }
+.btn-ghost:hover { color: var(--color-text); background: oklch(from var(--color-text) l c h / 0.06); }
+.btn-primary { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-inverse); background: var(--color-primary); padding: var(--space-2) var(--space-5); border-radius: var(--radius-full); }
+.btn-primary:hover { background: var(--color-primary-hover); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.theme-toggle { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); color: var(--color-text-muted); }
+.theme-toggle:hover { background: oklch(from var(--color-text) l c h / 0.06); color: var(--color-text); }
+
+/* ====== HERO ====== */
+.hero {
+  padding-top: calc(5rem + var(--space-16));
+  padding-bottom: var(--space-20);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, oklch(from var(--color-primary) l c h / 0.12), transparent 60%);
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  background: var(--color-primary-highlight); color: var(--color-primary);
+  font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-full);
+  margin-bottom: var(--space-6); border: 1px solid oklch(from var(--color-primary) l c h / 0.2);
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-hero);
+  font-style: italic;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  max-width: 14ch;
+  margin-inline: auto;
+  margin-bottom: var(--space-6);
+  background: linear-gradient(135deg in oklch, var(--color-text) 60%, var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-desc {
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+  max-width: 52ch;
+  margin-inline: auto;
+  margin-bottom: var(--space-10);
+  line-height: 1.7;
+}
+.hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: center; margin-bottom: var(--space-16); }
+.btn-large { font-size: var(--text-base); font-weight: 600; padding: var(--space-4) var(--space-8); border-radius: var(--radius-full); }
+.btn-outline { border: 1.5px solid var(--color-border); color: var(--color-text); padding: var(--space-4) var(--space-8); border-radius: var(--radius-full); font-size: var(--text-base); font-weight: 500; }
+.btn-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.hero-stats { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center; }
+.hero-stat { text-align: center; }
+.hero-stat-num { font-family: var(--font-display); font-size: var(--text-xl); font-style: italic; color: var(--color-primary); }
+.hero-stat-label { font-size: var(--text-xs); color: var(--color-text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: var(--space-1); }
+
+/* ====== CHAT DEMO ====== */
+.demo-section { padding: var(--space-20) 0; }
+.section-label { font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-primary); margin-bottom: var(--space-3); }
+.section-title { font-family: var(--font-display); font-size: var(--text-2xl); font-style: italic; line-height: 1.15; margin-bottom: var(--space-4); }
+.section-desc { font-size: var(--text-base); color: var(--color-text-muted); max-width: 48ch; line-height: 1.7; }
+.demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); align-items: center; margin-top: var(--space-12); }
+@media (max-width: 768px) { .demo-grid { grid-template-columns: 1fr; } }
+
+.chat-window {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.chat-header {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-divider);
+}
+.chat-avatar { width: 36px; height: 36px; border-radius: var(--radius-full); object-fit: cover; }
+.chat-avatar-placeholder { width: 36px; height: 36px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: var(--text-sm); font-weight: 700; color: white; flex-shrink: 0; }
+.chat-user-info { flex: 1; }
+.chat-user-name { font-size: var(--text-sm); font-weight: 600; line-height: 1.2; }
+.chat-user-loc { font-size: var(--text-xs); color: var(--color-text-muted); }
+.chat-flag { font-size: 1.1rem; }
+.chat-online { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--color-success); box-shadow: 0 0 0 2px var(--color-surface-2); }
+
+.chat-messages { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); min-height: 260px; }
+.msg { max-width: 78%; }
+.msg-bubble { padding: var(--space-3) var(--space-4); border-radius: var(--radius-xl); font-size: var(--text-sm); line-height: 1.55; }
+.msg-meta { font-size: var(--text-xs); color: var(--color-text-faint); margin-top: var(--space-1); }
+.msg-translated { font-size: var(--text-xs); color: var(--color-text-muted); font-style: italic; margin-top: var(--space-1); display: flex; align-items: center; gap: var(--space-1); }
+
+/* Sent (right side) */
+.msg-sent { align-self: flex-end; text-align: right; }
+.msg-sent .msg-bubble { background: var(--color-primary); color: white; border-bottom-right-radius: var(--radius-sm); }
+.msg-sent .msg-meta { text-align: right; }
+.msg-sent .msg-translated { justify-content: flex-end; }
+
+/* Received (left side) */
+.msg-received { align-self: flex-start; }
+.msg-received .msg-bubble { background: var(--color-surface-offset); border-bottom-left-radius: var(--radius-sm); }
+
+.translate-chip { display: inline-flex; align-items: center; gap: 3px; background: oklch(from var(--color-gold) l c h / 0.12); color: var(--color-gold); padding: 1px 6px; border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 600; border: 1px solid oklch(from var(--color-gold) l c h / 0.25); }
+
+.chat-input-bar {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-divider);
+  display: flex; gap: var(--space-3); align-items: center;
+  background: var(--color-surface-2);
+}
+.chat-input { flex: 1; background: var(--color-surface-offset); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: var(--space-2) var(--space-4); font-size: var(--text-sm); outline: none; }
+.chat-input:focus { border-color: var(--color-primary); }
+.send-btn { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.send-btn:hover { background: var(--color-primary-hover); }
+
+/* ====== FEATURES ====== */
+.features-section { padding: var(--space-20) 0; }
+.features-intro { text-align: center; margin-bottom: var(--space-16); }
+.features-intro .section-desc { margin-inline: auto; }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: var(--space-5);
+}
+.feature-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-interactive), box-shadow var(--transition-interactive);
+}
+.feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.feature-icon {
+  width: 44px; height: 44px; margin-bottom: var(--space-4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  background: var(--color-primary-highlight);
+  border-radius: var(--radius-lg);
+}
+.feature-title { font-family: var(--font-display); font-size: var(--text-lg); font-style: italic; margin-bottom: var(--space-2); }
+.feature-desc { font-size: var(--text-sm); color: var(--color-text-muted); line-height: 1.65; }
+
+/* ====== HOW IT WORKS ====== */
+.how-section { padding: var(--space-20) 0; }
+.how-section-inner { display: grid; gap: var(--space-16); }
+.how-intro { text-align: center; }
+.steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: var(--space-6); }
+.step { text-align: center; }
+.step-num {
+  width: 48px; height: 48px; border-radius: var(--radius-full);
+  background: var(--color-primary); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: var(--text-lg); font-style: italic;
+  margin-inline: auto; margin-bottom: var(--space-4);
+  box-shadow: 0 0 0 6px oklch(from var(--color-primary) l c h / 0.12);
+}
+.step-title { font-weight: 600; font-size: var(--text-base); margin-bottom: var(--space-2); }
+.step-desc { font-size: var(--text-sm); color: var(--color-text-muted); max-width: 26ch; margin-inline: auto; }
+
+/* ====== LANGUAGES ====== */
+.languages-section { padding: var(--space-16) 0; }
+.lang-scroll { display: flex; gap: var(--space-3); flex-wrap: wrap; justify-content: center; margin-top: var(--space-8); }
+.lang-pill {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-full);
+  font-size: var(--text-sm); font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+.lang-pill:hover { border-color: var(--color-primary); color: var(--color-primary); transform: translateY(-2px); transition: all var(--transition-interactive); }
+
+/* ====== PRICING ====== */
+.pricing-section { padding: var(--space-20) 0; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: var(--space-5); margin-top: var(--space-12); }
+.pricing-card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+.pricing-card.featured {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-lg);
+}
+.pricing-badge {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--color-primary); color: white;
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.pricing-name { font-weight: 700; font-size: var(--text-base); margin-bottom: var(--space-2); }
+.pricing-price { font-family: var(--font-display); font-size: var(--text-2xl); font-style: italic; margin-bottom: var(--space-1); }
+.pricing-price span { font-size: var(--text-sm); font-family: var(--font-body); font-style: normal; color: var(--color-text-muted); }
+.pricing-desc { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-6); }
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-8); }
+.pricing-features li { font-size: var(--text-sm); display: flex; align-items: flex-start; gap: var(--space-2); }
+.pricing-features li::before { content: '✓'; color: var(--color-success); font-weight: 700; flex-shrink: 0; }
+.pricing-features li.no::before { content: '–'; color: var(--color-text-faint); }
+.pricing-cta { display: block; text-align: center; padding: var(--space-3) var(--space-6); border-radius: var(--radius-full); font-weight: 600; font-size: var(--text-sm); text-decoration: none; }
+.pricing-cta-primary { background: var(--color-primary); color: white; }
+.pricing-cta-primary:hover { background: var(--color-primary-hover); }
+.pricing-cta-outline { border: 1.5px solid var(--color-border); color: var(--color-text); }
+.pricing-cta-outline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ====== CTA SECTION ====== */
+.cta-section {
+  padding: var(--space-24) 0;
+  text-align: center;
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, oklch(from var(--color-primary) l c h / 0.1), transparent);
+}
+.cta-section h2 { font-family: var(--font-display); font-size: var(--text-2xl); font-style: italic; margin-bottom: var(--space-4); }
+.cta-section p { font-size: var(--text-lg); color: var(--color-text-muted); max-width: 44ch; margin-inline: auto; margin-bottom: var(--space-10); }
+.cta-stores { display: flex; flex-wrap: wrap; gap: var(--space-4); justify-content: center; }
+.store-btn {
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--color-surface); border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-xl); padding: var(--space-3) var(--space-5);
+  text-decoration: none; color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+.store-btn:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.store-btn-icon { font-size: 1.6rem; }
+.store-btn-text { text-align: left; }
+.store-btn-sub { font-size: var(--text-xs); color: var(--color-text-muted); display: block; }
+.store-btn-name { font-size: var(--text-sm); font-weight: 700; display: block; }
+
+/* ====== FOOTER ====== */
+footer { border-top: 1px solid var(--color-divider); padding: var(--space-12) 0 var(--space-8); }
+.footer-inner { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: space-between; align-items: flex-start; }
+.footer-brand { max-width: 280px; }
+.footer-brand p { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-3); line-height: 1.65; }
+.footer-links-group h4 { font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: var(--space-4); }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.footer-links a { font-size: var(--text-sm); color: var(--color-text-muted); text-decoration: none; }
+.footer-links a:hover { color: var(--color-primary); }
+.footer-bottom { margin-top: var(--space-12); border-top: 1px solid var(--color-divider); padding-top: var(--space-6); display: flex; flex-wrap: wrap; gap: var(--space-4); justify-content: space-between; align-items: center; }
+.footer-copy { font-size: var(--text-xs); color: var(--color-text-faint); }
+
+/* ====== DIVIDER ====== */
+.section-divider { border: none; border-top: 1px solid var(--color-divider); margin: 0; }
+
+/* ====== ANIMATIONS ====== */
+@keyframes float-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.animate-in { animation: float-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; } .delay-4 { animation-delay: 0.4s; }
+.typing-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-muted); animation: pulse-dot 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; } .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" role="navigation" aria-label="Navigation principal">
+  <div class="nav-inner">
+    <a href="#" class="logo" aria-label="LingōDate inicio">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <circle cx="14" cy="14" r="12" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M10 17c1-1 2.5-1.5 4-1.5s3 .5 4 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="14" cy="10.5" r="1.5" fill="currentColor"/>
+        <!-- speech bubble overlay -->
+        <rect x="15" y="5" width="9" height="7" rx="2" fill="currentColor" opacity="0.85"/>
+        <path d="M18 8h3M18 10h2" stroke="white" stroke-width="1" stroke-linecap="round"/>
+        <path d="M17 12l1 2" stroke="currentColor" opacity="0.85" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      LingōDate
+    </a>
+    <div class="nav-actions">
+      <a href="#features" class="btn-ghost">Características</a>
+      <a href="#pricing" class="btn-ghost">Precios</a>
+      <button class="theme-toggle" data-theme-toggle aria-label="Cambiar tema">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="#download" class="btn-primary">Descargar gratis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SKIP LINK -->
+<a href="#main" class="sr-only">Saltar al contenido</a>
+
+<!-- HERO -->
+<main id="main">
+<section class="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="container">
+    <div class="hero-badge animate-in">
+      <span>✨</span> IA de traducción en tiempo real
+    </div>
+    <h1 class="animate-in delay-1">El amor no habla un solo idioma</h1>
+    <p class="hero-desc animate-in delay-2">
+      LingōDate conecta jóvenes de todo el mundo. Chatea en español, recibe en polaco, responde en japonés. La IA traduce cada mensaje al instante, para que la distancia y el idioma nunca sean una barrera.
+    </p>
+    <div class="hero-cta animate-in delay-3">
+      <a href="#download" class="btn-primary btn-large">Empezar gratis</a>
+      <a href="#demo" class="btn-outline btn-large">Ver cómo funciona</a>
+    </div>
+    <div class="hero-stats animate-in delay-4">
+      <div class="hero-stat">
+        <div class="hero-stat-num">50+</div>
+        <div class="hero-stat-label">Idiomas</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">180+</div>
+        <div class="hero-stat-label">Países</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">&lt;0.3s</div>
+        <div class="hero-stat-label">Traducción</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section" id="demo">
+  <div class="container">
+    <div class="demo-grid">
+      <div>
+        <div class="section-label">Chat con traducción IA</div>
+        <h2 class="section-title">Habla en tu idioma.<br>Conéctate en el suyo.</h2>
+        <p class="section-desc">Cada mensaje se traduce automáticamente. Tú ves lo que escribiste; ellos lo reciben en su idioma. Sin copiar y pegar, sin Google Translate, sin interrupciones en la conversación.</p>
+        <div style="margin-top: var(--space-8); display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--color-primary-highlight); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">⚡</div>
+            <p style="font-size: var(--text-sm); color: var(--color-text-muted);">Traducción instantánea en menos de 300ms</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--color-primary-highlight); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">🧠</div>
+            <p style="font-size: var(--text-sm); color: var(--color-text-muted);">IA contextual que entiende el tono (flirty, casual, serio)</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--color-primary-highlight); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">👁</div>
+            <p style="font-size: var(--text-sm); color: var(--color-text-muted);">Puedes ver siempre el mensaje original</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat mockup -->
+      <div class="chat-window" id="chat-demo-window">
+        <div class="chat-header">
+          <div class="chat-avatar-placeholder" style="background: linear-gradient(135deg, #c8415a, #e07060);">K</div>
+          <div class="chat-user-info">
+            <div class="chat-user-name">Kasia <span class="chat-flag">🇵🇱</span></div>
+            <div class="chat-user-loc">Varsovia, Polonia</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted);">
+            <div class="chat-online"></div>
+            en línea
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+          <!-- Mensaje recibido (en polaco → traducido al español) -->
+          <div class="msg msg-received">
+            <div class="msg-bubble">Cześć! Jak się masz? 😊</div>
+            <div class="msg-translated">
+              <span class="translate-chip">🌐 Traducido</span>
+              ¡Hola! ¿Cómo estás? 😊
+            </div>
+            <div class="msg-meta">10:42 am</div>
+          </div>
+
+          <!-- Enviado (en español → ella recibe en polaco) -->
+          <div class="msg msg-sent">
+            <div class="msg-bubble">¡Muy bien! Acabo de ver que amas el café ☕ yo también soy adicto al café jajaja</div>
+            <div class="msg-translated">
+              <span class="translate-chip">🌐 Enviado en polaco</span>
+              Ona widzi: Bardzo dobrze! Właśnie zobaczyłem...
+            </div>
+            <div class="msg-meta">10:43 am ✓✓</div>
+          </div>
+
+          <!-- Recibido -->
+          <div class="msg msg-received">
+            <div class="msg-bubble">Haha tak! Uwielbiam kawę! Mieszkasz w Limie? Chciałabym kiedyś zobaczyć Peru! 🌎</div>
+            <div class="msg-translated">
+              <span class="translate-chip">🌐 Traducido</span>
+              ¡Jaja sí! ¡Me encanta el café! ¿Vives en Lima? ¡Algún día me gustaría ver Perú! 🌎
+            </div>
+            <div class="msg-meta">10:44 am</div>
+          </div>
+
+          <!-- Typing indicator -->
+          <div class="msg msg-received" id="typing-indicator">
+            <div class="msg-bubble" style="padding: var(--space-3) var(--space-5); display: flex; gap: 4px; align-items: center;">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-bar">
+          <input class="chat-input" type="text" placeholder="Escribe en español..." id="demo-input" aria-label="Mensaje de chat demo">
+          <button class="send-btn" id="demo-send" aria-label="Enviar mensaje">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="features-intro">
+      <div class="section-label">Todo en uno</div>
+      <h2 class="section-title">Más que una app de citas</h2>
+      <p class="section-desc">LingōDate combina IA avanzada, matching cultural y comunidad global para que encuentres conexiones genuinas, sin importar el idioma.</p>
+    </div>
+    <div class="features-grid">
+
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3 class="feature-title">Chat con IA Traductora</h3>
+        <p class="feature-desc">Traducción bidireccional en tiempo real. Cada mensaje llega en el idioma nativo del receptor. El tono se preserva: flirty, casual o serio.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3 class="feature-title">Matching Global</h3>
+        <p class="feature-desc">Algoritmo que considera idioma de interés, zona horaria, intereses culturales y compatibilidad de personalidad. Más que solo fotos.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎙️</div>
+        <h3 class="feature-title">Notas de Voz Traducidas</h3>
+        <p class="feature-desc">Envía un audio en español y la IA lo transcribe, traduce y genera una nota de voz en el idioma del receptor. Conexión real, natural.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <h3 class="feature-title">Modo Explorar Culturas</h3>
+        <p class="feature-desc">Aprende frases en el idioma de tu match antes de chatear. La IA te sugiere expresiones y te puntúa. Rompe el hielo de forma única.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📹</div>
+        <h3 class="feature-title">Video Dates con Subtítulos</h3>
+        <p class="feature-desc">Videollamadas con subtítulos en tiempo real generados por IA. Habla, que ella/él te entenderá. Próximamente: doblaje de voz.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title">Verificación de Identidad</h3>
+        <p class="feature-desc">Todos los perfiles verificados con selfie + documento. Sin bots, sin perfiles falsos. Solo personas reales mayores de 18 años.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <h3 class="feature-title">Asistente IA para Citas</h3>
+        <p class="feature-desc">¿No sabes qué escribir? La IA sugiere respuestas basadas en el contexto de la conversación. Tú eliges, editas o usas directo.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3 class="feature-title">Guía de Viaje Integrada</h3>
+        <p class="feature-desc">Si planeas visitar el país de tu match, la app sugiere lugares, frases clave y tips culturales. Del chat a la realidad.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+  <div class="container">
+    <div class="how-intro">
+      <div class="section-label">Cómo funciona</div>
+      <h2 class="section-title">En 4 pasos sencillos</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Crea tu perfil</div>
+        <p class="step-desc">Sube fotos, cuéntate, y elige los idiomas que hablas y los que quieres conocer.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Haz swipe global</div>
+        <p class="step-desc">Filtra por país, idioma o cultura. Dale like a perfiles de todo el mundo.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Haz match</div>
+        <p class="step-desc">Cuando hay interés mutuo, se abre el chat con traducción activada automáticamente.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Conecta sin barreras</div>
+        <p class="step-desc">Chatea, manda audios, haz videollamada. La IA traduce todo en tiempo real.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- LANGUAGES -->
+<section class="languages-section">
+  <div class="container" style="text-align: center;">
+    <div class="section-label">Idiomas disponibles</div>
+    <h2 class="section-title">50+ idiomas en el lanzamiento</h2>
+    <div class="lang-scroll">
+      <div class="lang-pill">🇵🇪 Español</div>
+      <div class="lang-pill">🇵🇱 Polaco</div>
+      <div class="lang-pill">🇺🇸 Inglés</div>
+      <div class="lang-pill">🇯🇵 Japonés</div>
+      <div class="lang-pill">🇧🇷 Portugués</div>
+      <div class="lang-pill">🇫🇷 Francés</div>
+      <div class="lang-pill">🇩🇪 Alemán</div>
+      <div class="lang-pill">🇮🇹 Italiano</div>
+      <div class="lang-pill">🇰🇷 Coreano</div>
+      <div class="lang-pill">🇨🇳 Chino (mandarín)</div>
+      <div class="lang-pill">🇷🇺 Ruso</div>
+      <div class="lang-pill">🇸🇦 Árabe</div>
+      <div class="lang-pill">🇮🇳 Hindi</div>
+      <div class="lang-pill">🇹🇷 Turco</div>
+      <div class="lang-pill">🇳🇱 Holandés</div>
+      <div class="lang-pill">🇸🇪 Sueco</div>
+      <div class="lang-pill">+ 34 más</div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div style="text-align: center; margin-bottom: 0;">
+      <div class="section-label">Planes</div>
+      <h2 class="section-title">Empieza gratis, conecta sin límites</h2>
+    </div>
+    <div class="pricing-grid">
+
+      <div class="pricing-card">
+        <div class="pricing-name">Gratuito</div>
+        <div class="pricing-price">S/ 0 <span>/mes</span></div>
+        <p class="pricing-desc">Para comenzar a explorar el mundo</p>
+        <ul class="pricing-features">
+          <li>10 swipes por día</li>
+          <li>3 matches activos</li>
+          <li>Traducción de texto (150 msgs/día)</li>
+          <li>Perfil verificado</li>
+          <li class="no">Notas de voz traducidas</li>
+          <li class="no">Video dates con subtítulos</li>
+          <li class="no">Asistente IA de citas</li>
+        </ul>
+        <a href="#download" class="pricing-cta pricing-cta-outline">Descargar gratis</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Más popular</div>
+        <div class="pricing-name">Premium</div>
+        <div class="pricing-price">S/ 29 <span>/mes</span></div>
+        <p class="pricing-desc">Para conectar sin restricciones</p>
+        <ul class="pricing-features">
+          <li>Swipes ilimitados</li>
+          <li>Matches ilimitados</li>
+          <li>Traducción ilimitada (texto + voz)</li>
+          <li>Notas de voz traducidas</li>
+          <li>Video dates con subtítulos IA</li>
+          <li>Asistente IA de citas</li>
+          <li>Ver quién te dio like</li>
+        </ul>
+        <a href="#download" class="pricing-cta pricing-cta-primary">Empezar Premium</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-name">Viajero</div>
+        <div class="pricing-price">S/ 49 <span>/mes</span></div>
+        <p class="pricing-desc">Para los que viajan y quieren conectar en destino</p>
+        <ul class="pricing-features">
+          <li>Todo Premium incluido</li>
+          <li>Modo Explorar Culturas completo</li>
+          <li>Guía de viaje integrada</li>
+          <li>Soporte prioritario 24/7</li>
+          <li>Boost de perfil en destino</li>
+          <li>Badge "Viajero verificado"</li>
+        </ul>
+        <a href="#download" class="pricing-cta pricing-cta-outline">Elegir Viajero</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section" id="download">
+  <div class="container">
+    <h2>¿Listo para tu primer match global?</h2>
+    <p>Miles de jóvenes de Perú, Polonia, Japón, Brasil y más ya están conectando. Únete ahora — es gratis.</p>
+    <div class="cta-stores">
+      <a href="#" class="store-btn">
+        <span class="store-btn-icon">🍎</span>
+        <span class="store-btn-text">
+          <span class="store-btn-sub">Disponible en</span>
+          <span class="store-btn-name">App Store</span>
+        </span>
+      </a>
+      <a href="#" class="store-btn">
+        <span class="store-btn-icon">🤖</span>
+        <span class="store-btn-text">
+          <span class="store-btn-sub">Disponible en</span>
+          <span class="store-btn-name">Google Play</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container-wide">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="logo" style="font-size: var(--text-lg);">
+          <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <circle cx="14" cy="14" r="12" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M8 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M10 17c1-1 2.5-1.5 4-1.5s3 .5 4 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="14" cy="10.5" r="1.5" fill="currentColor"/>
+          </svg>
+          LingōDate
+        </a>
+        <p>Conectando jóvenes de todo el mundo a través de la IA. El idioma nunca más será una barrera para el amor.</p>
+      </div>
+      <div class="footer-links-group">
+        <h4>Producto</h4>
+        <ul class="footer-links">
+          <li><a href="#features">Características</a></li>
+          <li><a href="#pricing">Precios</a></li>
+          <li><a href="#demo">Demo chat</a></li>
+          <li><a href="#">Blog</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-group">
+        <h4>Legal</h4>
+        <ul class="footer-links">
+          <li><a href="#">Términos y condiciones</a></li>
+          <li><a href="#">Política de privacidad</a></li>
+          <li><a href="#">Cookies</a></li>
+          <li><a href="#">Verificación de edad</a></li>
+        </ul>
+      </div>
+      <div class="footer-links-group">
+        <h4>Soporte</h4>
+        <ul class="footer-links">
+          <li><a href="#">Centro de ayuda</a></li>
+          <li><a href="#">Reportar usuario</a></li>
+          <li><a href="#">Seguridad</a></li>
+          <li><a href="#">Contacto</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 LingōDate. Hecho con ❤️ en Lima, Perú. Para el mundo.</p>
+      <p class="footer-copy">Solo para mayores de 18 años.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Theme toggle
+(function(){
+  const t = document.querySelector('[data-theme-toggle]');
+  const r = document.documentElement;
+  let d = r.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  r.setAttribute('data-theme', d);
+  function updateIcon() {
+    if (!t) return;
+    t.innerHTML = d === 'dark'
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    t.setAttribute('aria-label', 'Cambiar a modo ' + (d === 'dark' ? 'claro' : 'oscuro'));
+  }
+  updateIcon();
+  t && t.addEventListener('click', () => { d = d === 'dark' ? 'light' : 'dark'; r.setAttribute('data-theme', d); updateIcon(); });
+})();
+
+// Chat demo interaction
+(function(){
+  const input = document.getElementById('demo-input');
+  const sendBtn = document.getElementById('demo-send');
+  const messages = document.getElementById('chat-messages');
+  const typingIndicator = document.getElementById('typing-indicator');
+
+  const responses = [
+    { pl: 'To brzmi świetnie! 😍', es: '¡Eso suena increíble! 😍' },
+    { pl: 'Uwielbiam Limę! Macie pyszne jedzenie 🍽️', es: '¡Me encanta Lima! Tienen comida deliciosa 🍽️' },
+    { pl: 'Też lubię muzykę! Jaki gatunek?', es: '¡A mí también me gusta la música! ¿Qué género?' },
+    { pl: 'Może kiedyś spotkamy się osobiście! 🌍', es: '¡Quizás algún día nos conozcamos en persona! 🌍' },
+  ];
+  let respIdx = 0;
+
+  function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Add sent message
+    const sentDiv = document.createElement('div');
+    sentDiv.className = 'msg msg-sent';
+    sentDiv.innerHTML = `
+      <div class="msg-bubble">${escapeHtml(text)}</div>
+      <div class="msg-translated"><span class="translate-chip">🌐 Enviado en polaco</span> Ona widzi la traducción...</div>
+      <div class="msg-meta">Ahora ✓✓</div>
+    `;
+    messages.insertBefore(sentDiv, typingIndicator);
+    input.value = '';
+
+    // Show typing
+    typingIndicator.style.display = 'block';
+    messages.scrollTop = messages.scrollHeight;
+
+    // After delay, add response
+    setTimeout(() => {
+      typingIndicator.style.display = 'none';
+      const r = responses[respIdx % responses.length];
+      respIdx++;
+      const recvDiv = document.createElement('div');
+      recvDiv.className = 'msg msg-received animate-in';
+      recvDiv.innerHTML = `
+        <div class="msg-bubble">${escapeHtml(r.pl)}</div>
+        <div class="msg-translated"><span class="translate-chip">🌐 Traducido</span> ${escapeHtml(r.es)}</div>
+        <div class="msg-meta">Ahora</div>
+      `;
+      messages.insertBefore(recvDiv, typingIndicator);
+      messages.scrollTop = messages.scrollHeight;
+    }, 1600);
+
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function escapeHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+
+  // Initially hide typing after a bit
+  setTimeout(() => { typingIndicator.style.display = 'none'; }, 2000);
+})();
+
+// Scroll reveal
+(function(){
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .step, .pricing-card, .lang-pill').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.16,1,0.3,1)';
+    observer.observe(el);
+  });
+})();
+</script>
+</body>
+</html>
