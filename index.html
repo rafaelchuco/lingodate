@@ -208,7 +208,7 @@ a, button, [role="button"], input, textarea { transition: color var(--transition
   background: var(--color-surface-2);
   border-bottom: 1px solid var(--color-divider);
 }
-.chat-avatar { width: 36px; height: 36px; border-radius: var(--radius-full); object-fit: cover; display: none; }
+.chat-avatar { width: 36px; height: 36px; border-radius: var(--radius-full); object-fit: cover; display: block; }
 .chat-avatar-placeholder { width: 36px; height: 36px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: var(--text-sm); font-weight: 700; color: white; flex-shrink: 0; }
 .chat-user-info { flex: 1; }
 .chat-user-name { font-size: var(--text-sm); font-weight: 600; line-height: 1.2; }
@@ -719,8 +719,7 @@ footer { border-top: 1px solid var(--color-divider); padding: var(--space-12) 0 
       <!-- Chat mockup -->
       <div class="chat-window" id="chat-demo-window">
         <div class="chat-header">
-          <img class="chat-avatar" id="kasia-avatar" src="./kasia.jpg" alt="Foto de Kasia" loading="lazy">
-          <div class="chat-avatar-placeholder" id="kasia-avatar-fallback" style="background: linear-gradient(135deg, #c8415a, #e07060);">K</div>
+          <img class="chat-avatar" src="./kasia.jpg" alt="Foto de Kasia" loading="eager">
           <div class="chat-user-info">
             <div class="chat-user-name">Kasia <span class="chat-flag">🇵🇱</span></div>
             <div class="chat-user-loc">Varsovia, Polonia</div>
@@ -1188,8 +1187,6 @@ footer { border-top: 1px solid var(--color-divider); padding: var(--space-12) 0 
   const messages = document.getElementById('chat-messages');
   const typingIndicator = document.getElementById('typing-indicator');
   const aiButtons = document.querySelectorAll('[data-ai-suggestion]');
-  const avatarImg = document.getElementById('kasia-avatar');
-  const avatarFallback = document.getElementById('kasia-avatar-fallback');
 
   const responses = [
     { pl: 'To brzmi świetnie! 😍', es: '¡Eso suena increíble! 😍' },
@@ -1259,25 +1256,6 @@ footer { border-top: 1px solid var(--color-divider); padding: var(--space-12) 0 
       input.focus();
     });
   });
-
-  // Uses the local Kasia photo and falls back to initials if the file can't be loaded.
-  (function loadKasiaAvatar() {
-    if (!avatarImg || !avatarFallback) return;
-
-    const showImage = () => {
-      avatarImg.style.display = 'block';
-      avatarFallback.style.display = 'none';
-    };
-
-    const showFallback = () => {
-      avatarImg.style.display = 'none';
-      avatarFallback.style.display = 'flex';
-    };
-
-    avatarImg.addEventListener('load', showImage);
-    avatarImg.addEventListener('error', showFallback);
-    avatarImg.src = './kasia.jpg';
-  })();
 
   // Initially hide typing after a bit
   setTimeout(() => { typingIndicator.style.display = 'none'; }, 2000);
