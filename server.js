@@ -120,10 +120,10 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
       const url = new URL(req.url, 'http://localhost');
       if (!url.pathname.startsWith('/api/')) {
         assert(req.method === 'GET' || req.method === 'HEAD', 405, 'Método no permitido.');
-        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg' };
+        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
         const file = files[url.pathname];
         assert(file, 404, 'Página no encontrada.');
-        const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
+        const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.png': 'image/png' };
         res.writeHead(200, { 'Content-Type': `${mime[extname(file)]}; charset=utf-8`, 'Cache-Control': 'no-cache' });
         res.end(req.method === 'HEAD' ? undefined : readFileSync(resolve(root, file)));
         return;

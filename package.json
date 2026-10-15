@@ -4,6 +4,13 @@
   "private": true,
   "type": "module",
   "description": "MVP de conexiones interculturales con perfiles, matches y chat persistente",
-  "engines": { "node": ">=24.0.0" },
-  "scripts": { "start": "node server.js", "dev": "node --watch server.js", "test": "node --test", "check": "node --check server.js && node --check translation.js && node --check public/app.js" }
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test",
+    "check": "node --check server.js && node --check translation.js && node --check public/app.js && node --check public/demo-profiles.js"
+  }
 }

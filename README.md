@@ -108,3 +108,13 @@ test/                    Pruebas de integración y del adaptador
 data/                    SQLite generado, excluido de Git
 .github/workflows/ci.yml  Validación automática
 ```
+
+## Mejoras de la demo
+
+Sofía, Lucas, Yuki y Emma tienen retratos originales generados con IA, guardados localmente en `public/portraits/`. Las fichas ampliadas incluyen preguntas personales, pequeños detalles culturales, el plan favorito del personaje e intereses realmente compartidos con tu perfil. Los textos adicionales son ficticios y se muestran solo para los personajes demo. [Procedencia y prompts de los retratos](docs/portrait-prompts.md).
+
+El descubrimiento permite buscar por nombre, ciudad, biografía o interés entre los perfiles cargados, ordenar por intereses en común o nombre y explorar países con accesos rápidos. La coincidencia de intereses se calcula a partir de las selecciones de ambos perfiles; no representa un porcentaje de compatibilidad psicológica.
+
+En Mi perfil se muestra un progreso basado en campos completados. “Viajero” sigue siendo el nombre inicial de una sesión demo y puede editarse; nunca se asigna el nombre del dueño del repositorio a visitantes.
+
+Desde un chat con match, **Proponer un plan** prepara una invitación para un encuentro virtual de café, música o intercambio cultural, con fecha, duración y zona horaria del navegador. El usuario revisa y puede editar el borrador antes de enviarlo. La propuesta solo queda guardada como mensaje cuando se pulsa Enviar; no crea reservas, llamadas ni eventos de calendario.

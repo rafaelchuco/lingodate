@@ -203,3 +203,16 @@ test('provider failures keep the original message deliverable', async t => {
   assert.equal(sent.body.messages[0].translatedText, null);
   assert.equal(sent.body.messages[0].translationStatus, 'unavailable');
 });
+
+test('fictional portraits and the frontend data module are available without external requests', async t => {
+  const { request } = await start(t);
+  for (const person of ['sofia', 'lucas', 'yuki', 'emma']) {
+    const image = await request(`/portraits/${person}.jpg`);
+    assert.equal(image.status, 200);
+    assert.match(image.headers.get('content-type'), /image\/jpeg/);
+  }
+  const module = await request('/demo-profiles.js');
+  assert.equal(module.status, 200);
+  assert.match(module.body, /export const demoProfiles/);
+  assert.equal((await request('/portraits/unknown.jpg')).status, 404);
+});

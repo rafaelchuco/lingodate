@@ -1,10 +1,11 @@
+import { demoProfiles, commonInterests, profileProgress, buildDateProposal } from '/demo-profiles.js';
 const app = document.querySelector('#app');
 const languages = ['Español', 'Inglés', 'Polaco', 'Portugués', 'Francés', 'Japonés'];
 const countries = ['Perú', 'Polonia', 'Brasil', 'Japón', 'Francia', 'Estados Unidos', 'España', 'México', 'Argentina', 'Colombia', 'Otro'];
 const intentions = ['Relación', 'Amistad', 'Intercambio cultural'];
 const interests = ['Viajes', 'Café', 'Música', 'Arte', 'Cocina', 'Naturaleza', 'Fotografía', 'Libros', 'Idiomas', 'Playa'];
 const flags = { 'Perú': '🇵🇪', 'Polonia': '🇵🇱', 'Brasil': '🇧🇷', 'Japón': '🇯🇵', 'Francia': '🇫🇷', 'Estados Unidos': '🇺🇸', 'España': '🇪🇸', 'México': '🇲🇽', 'Argentina': '🇦🇷', 'Colombia': '🇨🇴' };
-const state = { translation: { enabled: false, host: null }, user: null, page: 'home', profiles: [], matches: [], active: null, messages: [], filters: {}, busy: false, generation: 0 };
+const state = { translation: { enabled: false, host: null }, user: null, page: 'home', profiles: [], matches: [], active: null, messages: [], filters: {}, busy: false, generation: 0, search: '', sort: 'common', planner: null };
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icons = { globe: '◎', discover: '✧', matches: '♡', profile: '◉', arrow: '↗', close: '×', send: '↑', moon: '◐' };
 const icon = name => `<span aria-hidden="true">${icons[name]}</span>`;
@@ -26,7 +27,8 @@ async function api(path, method = 'GET', data) {
   return result;
 }
 function avatar(user, large = false) {
-  return `<div class="avatar ${large ? 'large' : ''} tone-${escape((user.id || 'a').charCodeAt(0) % 4)}" aria-hidden="true">${user.id === 'demo-kasia' ? '<img src="/kasia.jpg" alt="">' : escape(user.name.slice(0, 1).toUpperCase())}</div>`;
+  const photo = demoProfiles[user.id]?.photo;
+  return `<div class="avatar ${large ? 'large' : ''} tone-${escape((user.id || 'a').charCodeAt(0) % 4)}" aria-hidden="true">${photo ? `<img src="${photo}" alt="" width="80" height="80">` : escape(user.name.slice(0, 1).toUpperCase())}</div>`;
 }
 function header() {
   return `<header class="topbar"><a href="#" class="brand" data-action="home">${icon('globe')} LingōDate<span class="beta">MVP</span></a><div class="header-actions"><button class="theme" data-action="theme" aria-label="Cambiar tema">${icon('moon')}</button>${state.user ? `<span class="desktop muted">Hola, ${escape(state.user.name)}</span><button class="text-button" data-action="logout">Salir</button>` : `<button class="text-button" data-action="login">Iniciar sesión</button><button class="button small" data-action="register">Crear cuenta ${icon('arrow')}</button>`}</div></header>`;
@@ -45,11 +47,55 @@ function authPage(register) {
   return `<main id="content" class="auth-layout"><aside><span class="eyebrow">Tu mundo está por crecer</span><h1>Cada historia<br>empieza con<br><em>curiosidad.</em></h1><p>Un espacio para adultos que quieren conocer personas y culturas con respeto.</p><div class="auth-orb">◎<span>hola · cześć · hello · olá</span></div></aside><section class="form-card"><button class="text-button back" data-action="home">← Volver al inicio</button><h2>${register ? 'Preséntate al mundo' : 'Qué bueno verte de nuevo'}</h2><p class="muted">${register ? 'Crea tu cuenta gratis. Tu próxima conexión está por llegar.' : 'Continúa esa conversación que te hizo sonreír.'}</p><form id="auth-form" data-mode="${register ? 'register' : 'login'}"><label>Correo electrónico<input name="email" type="email" autocomplete="email" maxlength="254" required placeholder="tu@correo.com"></label><label>Contraseña<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="10" maxlength="128" required placeholder="Mínimo 10 caracteres"></label>${register ? `${profileFields()}<label class="checkbox-row"><input type="checkbox" name="adult" required>Confirmo que tengo 18 años o más y he leído la información de privacidad.</label><button type="button" class="text-button privacy-link" data-action="privacy">Ver privacidad y seguridad</button>` : ''}<p class="form-error" role="alert"></p><button class="button full" type="submit">${register ? 'Crear mi cuenta' : 'Iniciar sesión'} ${icon('arrow')}</button></form><p class="form-switch">${register ? '¿Ya tienes cuenta?' : '¿Primera vez aquí?'} <button class="text-button accent" data-action="${register ? 'login' : 'register'}">${register ? 'Inicia sesión' : 'Crea tu cuenta'}</button></p></section></main>`;
 }
 function profileCard(p) {
-  const common = p.interests.filter(i => state.user.interests.includes(i));
-  return `<article class="person-card"><div class="person-visual tone-${p.id.charCodeAt(0) % 4}">${p.id === 'demo-kasia' ? '<img src="/kasia.jpg" alt="Imagen ilustrativa de Kasia">' : `<div class="monogram" aria-hidden="true">${escape(p.name[0])}</div><div class="visual-orbit"></div>`}<span class="country-tag">${flags[p.country] || '🌍'} ${escape(p.country)}</span>${p.fictional ? '<span class="fiction-tag">Ficticio</span>' : ''}<div class="visual-caption"><span>${escape(p.city)}</span><h2>${escape(p.name)}, ${p.age}</h2></div></div><div class="person-body"><div class="profile-info"><span>◎ ${escape(p.language)}</span><span>♡ ${escape(p.intention)}</span></div><p>${escape(p.bio)}</p><div class="tags">${p.interests.map(i => `<span class="${common.includes(i) ? 'common' : ''}">${escape(i)}</span>`).join('')}</div><div class="card-actions"><button class="pass-button" data-action="pass" data-id="${p.id}" aria-label="Pasar a ${escape(p.name)}">×</button><button class="button like-button" data-action="like" data-id="${p.id}">♡ Me interesa</button></div></div></article>`;
+  const common = commonInterests(state.user, p), details = demoProfiles[p.id];
+  return `<article class="person-card"><button class="person-visual tone-${p.id.charCodeAt(0) % 4}" data-action="detail" data-id="${p.id}" aria-label="Conocer a ${escape(p.name)}"><div class="monogram" aria-hidden="true">${escape(p.name[0])}</div>${details?.photo ? `<img src="${details.photo}" alt="Retrato ilustrativo del personaje ficticio ${escape(p.name)}" loading="lazy" width="800" height="1000">` : '<div class="visual-orbit"></div>'}<span class="country-tag">${flags[p.country] || '🌍'} ${escape(p.country)}</span>${p.fictional ? '<span class="fiction-tag">Perfil demo</span>' : ''}<div class="visual-caption"><span>${escape(p.city)}${details ? ' · ' + escape(details.greeting) : ''}</span><h2>${escape(p.name)}, ${p.age}</h2></div><span class="photo-open" aria-hidden="true">↗</span></button><div class="person-body"><div class="profile-info"><span>◎ ${escape(p.language)}</span><span>♡ ${escape(p.intention)}</span></div>${common.length ? `<div class="common-note">✧ ${common.length} ${common.length === 1 ? 'interés en común' : 'intereses en común'}</div>` : '<div class="common-note subtle">✧ Un mundo nuevo por descubrir</div>'}<p>${escape(p.bio)}</p><div class="tags">${p.interests.map(i => `<span class="${common.includes(i) ? 'common' : ''}">${escape(i)}</span>`).join('')}</div><button class="detail-link text-button" data-action="detail" data-id="${p.id}">Su historia, en detalle ↗</button><div class="card-actions"><button class="pass-button" data-action="pass" data-id="${p.id}" aria-label="Pasar a ${escape(p.name)}">×</button><button class="button like-button" data-action="like" data-id="${p.id}">♡ Me interesa</button></div></div></article>`;
 }
+function visibleProfiles() {
+  const normalize = value => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
+  const query = normalize(state.search.trim());
+  return state.profiles.filter(p => !query || normalize([p.name, p.city, p.country, p.language, p.bio, ...p.interests].join(' ')).includes(query)).sort((a, b) => state.sort === 'name' ? a.name.localeCompare(b.name, 'es') : commonInterests(state.user, b).length - commonInterests(state.user, a).length || Number(Boolean(demoProfiles[b.id]?.photo)) - Number(Boolean(demoProfiles[a.id]?.photo)) || a.name.localeCompare(b.name, 'es'));
+}
+function discoveryWelcome() {
+  const progress = profileProgress(state.user);
+  return `<section class="discovery-welcome"><div class="welcome-message"><span class="welcome-orbit" aria-hidden="true">✧</span><div><span class="eyebrow">Tu pasaporte a nuevas historias</span><h2>Hola, ${escape(state.user.name)}. <em>¿A dónde te lleva la curiosidad?</em></h2><p>Elige una cultura, encuentra algo en común y da el primer paso.</p></div></div><div class="welcome-stats"><div><strong>${state.matches.length}</strong><span>${state.matches.length === 1 ? "conexión" : "conexiones"}</span></div><button data-action="profile"><strong>${progress.percent}%</strong><span>tu perfil ↗</span></button></div></section>`;
+}
+function completionCard() {
+  const progress = profileProgress(state.user);
+  return `<section class="completion-card"><div><span class="eyebrow">Una buena presentación abre puertas</span><h2>Tu historia está al ${progress.percent}%</h2><div class="progress-track" role="progressbar" aria-label="Perfil completado" aria-valuenow="${progress.percent}" aria-valuemin="0" aria-valuemax="100"><span class="progress-${progress.percent}"></span></div></div><ul>${progress.items.map(([label, done]) => `<li class="${done ? 'done' : ''}"><span aria-hidden="true">${done ? '✓' : '○'}</span> ${escape(label)}</li>`).join('')}</ul></section>`;
+}
+function refreshDiscoveryResults() {
+  const profiles = visibleProfiles(), results = document.querySelector('#discovery-results');
+  if (!results) return;
+  results.innerHTML = profiles.length ? `<div class="profile-grid">${profiles.map(profileCard).join('')}</div><p class="end-note">Cada persona es un mundo. Tómate el tiempo de conocerlo.</p>` : '<div class="empty"><span>⌕</span><h2>Una nueva búsqueda, otra posibilidad.</h2><p>Prueba otro nombre, ciudad o interés, o limpia los filtros.</p><button class="button secondary" data-action="clear-filters">Limpiar búsqueda y filtros</button></div>';
+  const count = document.querySelector('.result-count'); if (count) count.textContent = `${profiles.length} ${profiles.length === 1 ? "perfil" : "perfiles"} por descubrir`;
+}
+function chatConnection(person) {
+  const common = commonInterests(state.user, person), details = demoProfiles[person.id];
+  const hour = details ? new Intl.DateTimeFormat('es-PE', { timeZone: details.timezone, hour: '2-digit', minute: '2-digit' }).format(new Date()) : '';
+  return `<div class="connection-context"><span>✧ ${common.length ? escape(common.join(' · ')) + ' en común' : 'Una nueva cultura por conocer'}</span>${hour ? `<span>◷ ${hour} en ${escape(person.city)}</span>` : ''}</div>`;
+}
+function showDetail(id) {
+  const p = state.profiles.find(p => p.id === id) || state.matches.find(m => m.user.id === id)?.user;
+  if (!p) return;
+  const details = demoProfiles[p.id], common = commonInterests(state.user, p);
+  const match = state.matches.find(m => m.user.id === id);
+  const dialog = document.querySelector('#profile-dialog');
+  dialog.innerHTML = `<button class="dialog-close text-button" data-action="close-dialog" aria-label="Cerrar perfil">×</button><div class="detail-layout"><div class="detail-photo tone-${p.id.charCodeAt(0) % 4}"><div class="monogram" aria-hidden="true">${escape(p.name[0])}</div>${details?.photo ? `<img src="${details.photo}" alt="Retrato ilustrativo de ${escape(p.name)}" width="800" height="1000">` : ''}<div class="detail-photo-caption"><span>${flags[p.country] || '🌍'} ${escape(p.country)}</span><h2 id="detail-title">${escape(p.name)}, ${p.age}</h2><span>${escape(p.city)} · ${escape(p.language)}</span></div></div><div class="detail-story"><span class="eyebrow">${p.fictional ? 'Personaje ficticio · Demo' : 'Una persona, mil historias'}</span><h3>${details ? escape(details.greeting) + '. ' : ''}Qué bueno coincidir.</h3><p>${escape(p.bio)}</p><div class="detail-intention">♡ Busca ${escape(p.intention.toLowerCase())}</div>${details ? `<section class="prompt-card"><span>${escape(details.prompt)}</span><p>“${escape(details.answer)}”</p></section><p class="cultural-note">◎ ${escape(details.teach)}</p>` : ''}<h4>${common.length ? `${common.length} ${common.length === 1 ? "interés que los une" : "intereses que los unen"}` : 'Su pequeño universo'}</h4><div class="tags">${p.interests.map(i => `<span class="${common.includes(i) ? 'common' : ''}">${escape(i)}</span>`).join('')}</div>${details ? `<div class="ideal-date"><span>✧ Su plan favorito</span><p>${escape(details.plan)}</p></div>` : ''}${match ? `<button class="button full" data-action="detail-chat" data-id="${match.id}">Continuar la conversación ↗</button>` : `<button class="button full" data-action="like" data-id="${p.id}">♡ Me interesa conocer a ${escape(p.name)}</button>`}<p class="photo-disclosure">${p.fictional ? 'Perfil de demostración. Los retratos de Sofía, Lucas, Yuki y Emma fueron creados con IA.' : 'La edad y la información del perfil son autodeclaradas.'}</p></div></div>`;
+  dialog.showModal();
+}
+function showPlanner() {
+  const peer = state.matches.find(m => m.id === state.active)?.user;
+  if (!peer) return toast('Elige una conexión primero.');
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const localDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  const dialog = document.querySelector('#planner-dialog');
+  dialog.innerHTML = `<button class="dialog-close text-button" data-action="close-dialog" aria-label="Cerrar planificador">×</button><span class="eyebrow">Una idea para romper la distancia</span><h2 id="planner-title">Su próxima <em>pequeña aventura.</em></h2><p>Prepara una invitación para ${escape(peer.name)}. La podrás revisar antes de enviarla en el chat.</p><form id="planner-form"><fieldset class="plan-picker"><legend>¿Qué les gustaría compartir?</legend>${[['coffee', '☕', 'Un café, dos culturas', 'Una bebida y una buena conversación.'], ['music', '♫', 'Nuestra primera playlist', 'Tres canciones y las historias detrás.'], ['culture', '◎', 'Un viaje sin maletas', 'Fotos, palabras y rincones favoritos.']].map(([value, symbol, title, description], i) => `<label><input type="radio" name="type" value="${value}" ${i === 0 ? 'checked' : ''}><span><b>${symbol}</b><strong>${title}</strong><small>${description}</small></span></label>`).join('')}</fieldset><div class="form-grid"><label>Día<input type="date" name="date" value="${localDate}" min="${localDate}" required></label><label>Hora en tu zona<input type="time" name="time" value="18:00" required></label></div><label>Un ratito para conectar<select name="duration"><option value="30">30 minutos</option><option value="60" selected>60 minutos</option><option value="90">90 minutos</option></select></label><p class="form-error" role="alert"></p><button class="button full" type="submit">Preparar invitación ↗</button><p class="planner-note">Idea de encuentro virtual; no reserva lugares ni inicia una llamada. El horario se propone en tu zona y se acuerda por chat.</p></form>`;
+  dialog.showModal();
+}
+
 function discover() {
-  return `<main id="content" class="workspace"><div class="page-heading"><div><span class="eyebrow">La conexión empieza con curiosidad</span><h1>Tu próxima <em>historia.</em></h1><p class="muted">Personas, culturas y algo en común.</p></div><span class="result-count">${state.profiles.length} perfiles por descubrir</span></div><form id="filters" class="filter-bar"><label>País<select name="country">${options(countries, state.filters.country, 'Todo el mundo')}</select></label><label>Idioma<select name="language">${options(languages, state.filters.language, 'Todos los idiomas')}</select></label><label>Intención<select name="intention">${options(intentions, state.filters.intention, 'Todas las intenciones')}</select></label><button class="text-button" type="button" data-action="clear-filters">Limpiar filtros ↺</button></form>${state.profiles.length ? `<div class="profile-grid">${state.profiles.map(profileCard).join('')}</div><p class="end-note">Cada persona es un mundo. Tómate el tiempo de conocerlo.</p>` : `<div class="empty"><span>◎</span><h2>El mundo aún se está sumando</h2><p>${state.user.demo ? 'Prueba otros filtros o vuelve a ver los perfiles que pasaste.' : 'Todavía no hay más perfiles para estos filtros. Invita a alguien a crear su cuenta o vuelve más tarde.'}</p><button class="button secondary" data-action="${state.user.demo ? 'reset' : 'clear-filters'}">${state.user.demo ? 'Volver a explorar' : 'Ver todos los perfiles'}</button></div>`}</main>`;
+  const profiles = visibleProfiles();
+  return `<main id="content" class="workspace"><div class="page-heading"><div><span class="eyebrow">La conexión empieza con curiosidad</span><h1>Tu próxima <em>historia.</em></h1><p class="muted">Personas, culturas y algo en común.</p></div><span class="result-count">${visibleProfiles().length} ${visibleProfiles().length === 1 ? "perfil" : "perfiles"} por descubrir</span></div>${discoveryWelcome()}<div class="country-shortcuts" aria-label="Explorar culturas">${["", "Perú", "Brasil", "Japón", "Francia", "Polonia"].map(country => `<button class="country-shortcut ${(state.filters.country || "") === country ? "selected" : ""}" data-action="country" data-id="${country}">${country ? flags[country] : "🌍"} ${country || "Todo el mundo"}</button>`).join("")}</div><form id="filters" class="filter-bar"><label>País<select name="country">${options(countries, state.filters.country, 'Todo el mundo')}</select></label><label>Idioma<select name="language">${options(languages, state.filters.language, 'Todos los idiomas')}</select></label><label>Intención<select name="intention">${options(intentions, state.filters.intention, 'Todas las intenciones')}</select></label><button class="text-button" type="button" data-action="clear-filters">Limpiar filtros ↺</button></form><div class="discovery-tools"><label class="search-box"><span aria-hidden="true">⌕</span><input id="profile-search" type="search" aria-label="Buscar por nombre, ciudad o interés" placeholder="Busca una ciudad, un interés, una historia…" value="${escape(state.search)}" maxlength="100"></label><label class="sort-box">Ordenar por<select id="profile-sort"><option value="common" ${state.sort === "common" ? "selected" : ""}>Intereses en común</option><option value="name" ${state.sort === "name" ? "selected" : ""}>Nombre</option></select></label></div><div id="discovery-results">${profiles.length ? `<div class="profile-grid">${profiles.map(profileCard).join('')}</div><p class="end-note">Cada persona es un mundo. Tómate el tiempo de conocerlo.</p>` : `<div class="empty"><span>◎</span><h2>El mundo aún se está sumando</h2><p>${state.user.demo ? 'Prueba otros filtros o vuelve a ver los perfiles que pasaste.' : 'Todavía no hay más perfiles para estos filtros. Invita a alguien a crear su cuenta o vuelve más tarde.'}</p><button class="button secondary" data-action="${state.user.demo ? 'reset' : 'clear-filters'}">${state.user.demo ? 'Volver a explorar' : 'Ver todos los perfiles'}</button></div>`}</div></main>`;
 }
 function matches() {
   return `<main id="content" class="workspace"><div class="page-heading"><div><span class="eyebrow">Dos personas. Una posibilidad.</span><h1>Tus <em>conexiones.</em></h1><p class="muted">Las buenas conversaciones empiezan por algo pequeño.</p></div><button class="text-button" data-action="matches">Actualizar ↻</button></div><div class="inbox"><aside class="conversations" aria-label="Tus conversaciones">${state.matches.length ? state.matches.map(m => `<button class="conversation ${state.active === m.id ? 'selected' : ''}" data-action="open-chat" data-id="${m.id}">${avatar(m.user)}<span><strong>${escape(m.user.name)} <small>${flags[m.user.country] || '🌍'}</small></strong><span class="conversation-preview">${escape(m.lastMessage?.text || 'Un match. Mil cosas por descubrir.')}</span></span><span class="chat-arrow">↗</span></button>`).join('') : '<div class="empty small-empty"><span>♡</span><h3>Todo empieza con un like</h3><p>Cuando sea mutuo, tu conexión aparecerá aquí.</p><button class="button secondary" data-action="discover">Descubrir personas</button></div>'}</aside><section class="chat-panel" id="chat-panel">${chatPanel()}</section></div></main>`;
@@ -67,10 +113,10 @@ function messageHtml(m, peer) {
 function chatPanel() {
   const match = state.matches.find(m => m.id === state.active);
   if (!match) return '<div class="empty chat-empty"><span>✧</span><h2>Un hola puede cambiarlo todo.</h2><p>Elige una conexión para conversar.</p></div>';
-  return `<header class="chat-heading">${avatar(match.user)}<div><h2>${escape(match.user.name)}</h2><p>${escape(match.user.city)} · ${escape(match.user.language)}${match.user.fictional ? ' · Perfil ficticio' : ''}</p></div><button class="text-button" data-action="block" data-id="${match.user.id}">Bloquear</button></header><div class="chat-notice">${state.user.demo ? 'Conversación simulada · Las frases sugeridas incluyen traducciones de ejemplo.' : state.translation.enabled ? `Traducción automática · El texto se envía a ${escape(state.translation.host)}. Siempre puedes ver el original.` : 'Chat privado entre ambos. La traducción automática aún no está conectada.'}</div><div id="messages" class="message-list" role="log" aria-live="polite" aria-label="Mensajes">${state.messages.map(m => messageHtml(m, match.user)).join('')}</div><div class="suggestions" aria-label="Frases para romper el hielo">${Object.keys(bilingual).map((text, i) => `<button data-action="suggest" data-id="${i}">${['◎ Su ciudad', '☕ Un café', '♫ Música'][i]}</button>`).join('')}</div><form id="message-form" class="composer"><label class="sr-only" for="message-input">Tu mensaje</label><textarea id="message-input" name="message" maxlength="2000" rows="1" required placeholder="Escribe un hola, o algo más…"></textarea><button class="send-button" type="submit" aria-label="Enviar mensaje">↑</button></form>`;
+  return `<header class="chat-heading">${avatar(match.user)}<div><h2>${escape(match.user.name)}</h2><p>${escape(match.user.city)} · ${escape(match.user.language)}${match.user.fictional ? ' · Perfil ficticio' : ''}</p></div><button class="text-button planner-trigger" data-action="planner">✧ Proponer un plan</button><button class="text-button" data-action="block" data-id="${match.user.id}">Bloquear</button></header><div class="chat-notice">${state.user.demo ? 'Conversación simulada · Las frases sugeridas incluyen traducciones de ejemplo.' : state.translation.enabled ? `Traducción automática · El texto se envía a ${escape(state.translation.host)}. Siempre puedes ver el original.` : 'Chat privado entre ambos. La traducción automática aún no está conectada.'}</div><div id="messages" class="message-list" role="log" aria-live="polite" aria-label="Mensajes">${state.messages.map(m => messageHtml(m, match.user)).join('')}</div>${chatConnection(match.user)}<div class="suggestions" aria-label="Frases para romper el hielo">${Object.keys(bilingual).map((text, i) => `<button data-action="suggest" data-id="${i}">${['◎ Su ciudad', '☕ Un café', '♫ Música'][i]}</button>`).join('')}</div><form id="message-form" class="composer"><label class="sr-only" for="message-input">Tu mensaje</label><textarea id="message-input" name="message" maxlength="2000" rows="1" required placeholder="Escribe un hola, o algo más…"></textarea><button class="send-button" type="submit" aria-label="Enviar mensaje">↑</button></form>`;
 }
 function profile() {
-  return `<main id="content" class="workspace profile-workspace"><div class="page-heading"><div><span class="eyebrow">Lo que te hace tú</span><h1>Tu <em>perfil.</em></h1><p class="muted">Una pequeña ventana a tu mundo.</p></div>${avatar(state.user, true)}</div><section class="form-card"><form id="profile-form">${profileFields(state.user)}<p class="form-error" role="alert"></p><button class="button" type="submit">Guardar mi perfil ↗</button></form></section><section class="account-note"><h3>Tu privacidad importa</h3><p>Solo se muestra tu ciudad; tu correo nunca aparece en tu perfil. Tu edad es autodeclarada y los perfiles aún no tienen verificación de identidad.</p><div><button class="text-button" data-action="privacy">Cómo se guardan tus datos</button><button class="text-button danger" data-action="delete-account">Eliminar mi cuenta y sus datos</button></div></section></main>`;
+  return `<main id="content" class="workspace profile-workspace"><div class="page-heading"><div><span class="eyebrow">Lo que te hace tú</span><h1>Tu <em>perfil.</em></h1><p class="muted">Una pequeña ventana a tu mundo.</p></div>${avatar(state.user, true)}</div>${completionCard()}<section class="form-card"><form id="profile-form">${profileFields(state.user)}<p class="form-error" role="alert"></p><button class="button" type="submit">Guardar mi perfil ↗</button></form></section><section class="account-note"><h3>Tu privacidad importa</h3><p>Solo se muestra tu ciudad; tu correo nunca aparece en tu perfil. Tu edad es autodeclarada y los perfiles aún no tienen verificación de identidad.</p><div><button class="text-button" data-action="privacy">Cómo se guardan tus datos</button><button class="text-button danger" data-action="delete-account">Eliminar mi cuenta y sus datos</button></div></section></main>`;
 }
 function privacy() {
   return `<main id="content" class="workspace policy"><button class="text-button" data-action="${state.user ? 'profile' : 'home'}">← Volver</button><span class="eyebrow">MVP · Información de uso</span><h1>Conecta con <em>cuidado.</em></h1><h2>Qué se guarda</h2><p>El servidor almacena tu correo, contraseña protegida con un hash scrypt, perfil, likes y mensajes en una base de datos SQLite. Tu correo es privado. Las conversaciones no tienen cifrado de extremo a extremo y el administrador del servidor puede acceder a la base de datos.</p><h2>Tu sesión</h2><p>Usamos una cookie de sesión necesaria, HttpOnly y SameSite, que caduca a los 7 días. El tema visual se guarda en tu navegador. No se incluyen analítica ni cookies publicitarias.</p><h2>Personas y demo</h2><p>Solo para mayores de 18 años. La edad es autodeclarada: aún no verificamos identidad ni documentos. Las cuentas demo están separadas de las cuentas reales y usan perfiles y respuestas ficticios. La demo no envía mensajes a proveedores externos. Si el administrador activa LibreTranslate, los mensajes entre cuentas reales en distintos idiomas se envían al proveedor indicado en el chat para traducirlos.</p><h2>Mensajes y bloqueo</h2><p>El chat se abre con interés mutuo. Puedes bloquear una conexión para ocultarla y detener el acceso al chat para ambas partes. El bloqueo no borra los mensajes. La interfaz muestra los últimos 200 mensajes de cada conversación.</p><h2>Control de tus datos</h2><p>Puedes editar el perfil o eliminar tu cuenta desde Mi perfil. Eliminarla borra también sesiones, likes, matches y mensajes asociados en este servidor. Las cuentas demo también se guardan hasta su eliminación. Esta versión no incluye recuperación de contraseña, verificación de correo ni moderación con un equipo de soporte.</p><h2>Cuida lo que compartes</h2><p>No compartas tu dirección exacta, documentos, contraseñas ni datos financieros. Para una primera cita, elige un lugar público y avisa a alguien de confianza.</p></main>`;
@@ -105,12 +151,12 @@ async function go(page) {
 }
 async function auth(mode, data) {
   state.user = (await api(`/${mode}`, 'POST', data)).user;
-  state.active = null; state.messages = []; state.filters = {};
+  state.active = null; state.messages = []; state.filters = {}; state.search = '';
   await go('discover');
 }
 async function decision(id, like) {
   const result = await api('/decisions', 'POST', { targetId: id, like });
-  const person = state.profiles.find(p => p.id === id);
+  const person = state.profiles.find(p => p.id === id) || state.matches.find(m => m.user.id === id)?.user;
   state.profiles = state.profiles.filter(p => p.id !== id);
   await loadMatches(); render();
   if (result.match) {
@@ -134,21 +180,25 @@ document.addEventListener('click', async event => {
     try { localStorage.setItem('lingodate-theme', theme); } catch { /* Optional preference. */ }
     return;
   }
-  if (action === 'close-dialog') return document.querySelector('#match-dialog').close();
+  if (action === 'close-dialog') return button.closest('dialog').close();
+  if (action === 'detail') return showDetail(id);
+  if (action === 'planner') return showPlanner();
   if (action === 'suggest') {
     const input = document.querySelector('#message-input'); input.value = Object.keys(bilingual)[Number(id)]; input.focus(); return;
   }
   if (state.busy) return;
   state.busy = true; button.disabled = true;
   try {
-    if (action === 'demo') await auth('demo', {});
+    if (action === 'country') { state.filters.country = id; await go('discover'); }
+    else if (action === 'demo') await auth('demo', {});
     else if (action === 'logout' || action === 'leave-demo') {
       await api('/logout', 'POST', {}); state.user = null; state.matches = []; state.active = null; await go(action === 'logout' ? 'home' : 'register');
-    } else if (action === 'like' || action === 'pass') await decision(id, action === 'like');
+    } else if (action === 'like' || action === 'pass') { document.querySelector('#profile-dialog').close(); await decision(id, action === 'like'); }
+    else if (action === 'detail-chat') { document.querySelector('#profile-dialog').close(); state.active = id; await go('matches'); }
     else if (action === 'open-chat') await openChat(id);
     else if (action === 'match-chat') { document.querySelector('#match-dialog').close(); state.active = id; await go('matches'); }
     else if (action === 'clear-filters' || action === 'reset') {
-      state.filters = {};
+      state.filters = {}; state.search = '';
       if (action === 'reset') await api('/discover/reset', 'POST', {});
       await go('discover');
     } else if (action === 'block') {
@@ -162,6 +212,7 @@ document.addEventListener('click', async event => {
   finally { state.busy = false; button.disabled = false; }
 });
 document.addEventListener('change', async event => {
+  if (event.target.id === 'profile-sort') { state.sort = event.target.value; refreshDiscoveryResults(); }
   if (event.target.closest('#filters')) {
     state.filters = Object.fromEntries(new FormData(document.querySelector('#filters')));
     const generation = ++state.generation;
@@ -173,11 +224,19 @@ document.addEventListener('change', async event => {
 document.addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target;
-  if (!['auth-form', 'profile-form', 'message-form'].includes(form.id) || state.busy) return;
+  if (!['auth-form', 'profile-form', 'message-form', 'planner-form'].includes(form.id) || state.busy) return;
   state.busy = true;
   const button = form.querySelector('[type="submit"]'); button.disabled = true;
   const errorEl = form.querySelector('.form-error'); if (errorEl) errorEl.textContent = '';
   try {
+    if (form.id === 'planner-form') {
+      const peer = state.matches.find(m => m.id === state.active)?.user;
+      if (!peer) throw new Error('Elige una conexión primero.');
+      const proposal = buildDateProposal(Object.fromEntries(new FormData(form)), peer);
+      document.querySelector('#planner-dialog').close();
+      const input = document.querySelector('#message-input'); input.value = proposal.text; input.focus();
+      toast('Propuesta preparada. Revísala y envíala cuando quieras.');
+    }
     if (form.id === 'auth-form') await auth(form.dataset.mode, formData(form));
     if (form.id === 'profile-form') { state.user = (await api('/profile', 'PUT', formData(form))).user; render(); toast('Tu perfil está listo para el mundo.'); }
     if (form.id === 'message-form') {
@@ -233,3 +292,7 @@ try {
 }
 polling = setInterval(poll, 3500);
 window.addEventListener('pagehide', () => clearInterval(polling));
+
+for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('click', event => { if (event.target === dialog) { const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); } });
+document.addEventListener('input', event => { if (event.target.id === 'profile-search') { state.search = event.target.value; refreshDiscoveryResults(); } });
+document.addEventListener('error', event => { if (event.target.matches?.('.person-visual img, .avatar img, .detail-photo img')) event.target.remove(); }, true);
