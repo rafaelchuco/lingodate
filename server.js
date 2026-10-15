@@ -84,7 +84,7 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
   const actors = [
     ['kasia', 'Kasia', 25, 'Varsovia', 'Polonia', 'Polaco', 'Relación', 'Colecciono libros, rincones con buen café y planes espontáneos. ¿Me enseñas tu ciudad?', ['Café', 'Viajes', 'Fotografía']],
     ['lucas', 'Lucas', 28, 'São Paulo', 'Brasil', 'Portugués', 'Amistad', 'Música en vivo, una buena caminata y aprender algo nuevo cada día. Con ganas de conocer Perú.', ['Música', 'Naturaleza', 'Viajes']],
-    ['yuki', 'Yuki', 26, 'Kioto', 'Japón', 'Japonés', 'Intercambio cultural', 'Diseñadora y fan de las pequeñas cosas. Estoy aprendiendo español y amo cocinar para mis amigos.', ['Arte', 'Cocina', 'Idiomas']],
+    ['yuki', 'Lisa', 26, 'Kioto', 'Japón', 'Japonés', 'Intercambio cultural', 'Diseñadora y fan de las pequeñas cosas. Estoy aprendiendo español y amo cocinar para mis amigos.', ['Arte', 'Cocina', 'Idiomas']],
     ['emma', 'Emma', 27, 'París', 'Francia', 'Francés', 'Relación', 'Siempre buscando una exposición, una nueva receta o una historia que me haga sonreír.', ['Arte', 'Cocina', 'Café']],
     ['alex', 'Alex', 29, 'Nueva York', 'Estados Unidos', 'Inglés', 'Intercambio cultural', 'Mi plan perfecto empieza con una caminata y termina con una conversación sin mirar el reloj.', ['Naturaleza', 'Libros', 'Idiomas']],
     ['sofia', 'Sofía', 24, 'Lima', 'Perú', 'Español', 'Amistad', 'Amante del mar, los atardeceres y la comida peruana. Mi siguiente aventura: aprender portugués.', ['Playa', 'Cocina', 'Viajes']]
@@ -95,6 +95,8 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
   const actorGenders = { kasia: 'woman', sofia: 'woman', yuki: 'woman', emma: 'woman', lucas: 'man', alex: 'man' };
   for (const [id, gender] of Object.entries(actorGenders)) run('UPDATE users SET gender=? WHERE id=?', gender, 'demo-' + id);
   run('UPDATE users SET name=? WHERE id=?', 'Álex', 'demo-alex');
+  // Keep the original ID so existing matches and conversations follow the renamed profile.
+  run('UPDATE users SET name=? WHERE id=?', 'Lisa', 'demo-yuki');
   function saveDemoMessage(matchId, actor, phrase) {
     const id = randomUUID();
     run('INSERT INTO messages VALUES (?,?,?,?,?)', id, matchId, actor.id, phrase.original, Date.now());
@@ -148,7 +150,7 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
       const url = new URL(req.url, 'http://localhost');
       if (!url.pathname.startsWith('/api/')) {
         assert(req.method === 'GET' || req.method === 'HEAD', 405, 'Método no permitido.');
-        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', '/language-kit.js': 'public/language-kit.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma', 'alex'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
+        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', '/language-kit.js': 'public/language-kit.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma', 'alex', 'lisa', 'emma-reference'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
         const file = files[url.pathname];
         assert(file, 404, 'Página no encontrada.');
         const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.png': 'image/png' };

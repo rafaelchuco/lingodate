@@ -206,7 +206,7 @@ test('provider failures keep the original message deliverable', async t => {
 
 test('fictional portraits and the frontend data module are available without external requests', async t => {
   const { request } = await start(t);
-  for (const person of ['sofia', 'lucas', 'yuki', 'emma', 'alex']) {
+  for (const person of ['sofia', 'lucas', 'lisa', 'emma-reference', 'alex']) {
     const image = await request(`/portraits/${person}.jpg`);
     assert.equal(image.status, 200);
     assert.match(image.headers.get('content-type'), /image\/jpeg/);
@@ -234,7 +234,7 @@ test('discovery filters declared genders and keeps Kasia visible once matched', 
   const { request } = await start(t);
   const user = await request('/api/demo', 'POST', {});
   const women = (await request('/api/discover?gender=woman', 'GET', undefined, user.cookie)).body.profiles;
-  assert.deepEqual(women.map(p => p.name).sort(), ['Emma', 'Kasia', 'Sofía', 'Yuki']);
+  assert.deepEqual(women.map(p => p.name).sort(), ['Emma', 'Kasia', 'Lisa', 'Sofía']);
   const men = (await request('/api/discover?gender=man', 'GET', undefined, user.cookie)).body.profiles;
   assert.deepEqual(men.map(p => p.name).sort(), ['Lucas', 'Álex']);
   const match = (await request('/api/decisions', 'POST', { targetId: 'demo-kasia', like: true }, user.cookie)).body.match;

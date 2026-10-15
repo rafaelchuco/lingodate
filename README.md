@@ -111,7 +111,7 @@ data/                    SQLite generado, excluido de Git
 
 ## Mejoras de la demo
 
-Sofía, Lucas, Yuki y Emma tienen retratos originales generados con IA, guardados localmente en `public/portraits/`. Las fichas ampliadas incluyen preguntas personales, pequeños detalles culturales, el plan favorito del personaje e intereses realmente compartidos con tu perfil. Los textos adicionales son ficticios y se muestran solo para los personajes demo. [Procedencia y prompts de los retratos](docs/portrait-prompts.md).
+Sofía, Lucas y Álex tienen retratos generados con IA; Emma y Lisa usan imágenes aportadas por el usuario, guardadas localmente en `public/portraits/`. Las fichas ampliadas incluyen preguntas personales, pequeños detalles culturales, el plan favorito del personaje e intereses realmente compartidos con tu perfil. Los textos adicionales son ficticios y se muestran solo para los personajes demo. [Procedencia y prompts de los retratos](docs/portrait-prompts.md).
 
 El descubrimiento permite buscar por nombre, ciudad, biografía o interés entre los perfiles cargados, ordenar por intereses en común o nombre y explorar países con accesos rápidos. La coincidencia de intereses se calcula a partir de las selecciones de ambos perfiles; no representa un porcentaje de compatibilidad psicológica.
 
@@ -121,7 +121,7 @@ Desde un chat con match, **Proponer un plan** prepara una invitación para un en
 
 ## Países, viajeros y chat de tres partes
 
-La barra **Hola, viajero / Hola, viajera** guarda una preferencia de descubrimiento en SQLite. Viajero muestra mujeres; viajera muestra hombres. La demo presenta primero a Emma, Sofía, Yuki y Kasia, o a Lucas y Álex según la opción seleccionada. Álex también tiene un retrato generado con IA. Cambiar la selección conserva los matches y chats existentes. El género de las cuentas reales se declara en el formulario de perfil: no se deduce del nombre, foto ni opción de viajero. Los perfiles con género sin indicar no aparecen en estas selecciones.
+La barra **Hola, viajero / Hola, viajera** guarda una preferencia de descubrimiento en SQLite. Viajero muestra mujeres; viajera muestra hombres. La demo presenta primero a Emma, Sofía, Lisa y Kasia, o a Lucas y Álex según la opción seleccionada. Álex también tiene un retrato generado con IA. Cambiar la selección conserva los matches y chats existentes. El género de las cuentas reales se declara en el formulario de perfil: no se deduce del nombre, foto ni opción de viajero. Los perfiles con género sin indicar no aparecen en estas selecciones.
 
 **Países** abre una pantalla independiente de destinos. Al elegir uno se muestra su vista de descubrimiento con los filtros correspondientes y una opción para volver a los otros países. Los contadores reflejan los perfiles disponibles para la preferencia seleccionada.
 
@@ -141,3 +141,7 @@ Para mensajes libres entre cuentas reales, hay dos opciones:
 - **OpenAI:** configurar explícitamente `LANGUAGE_PROVIDER=openai`, `OPENAI_API_KEY` y, opcionalmente, `LANGUAGE_MODEL` (predeterminado: `gpt-4.1-mini`). La integración utiliza [Responses y Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses) para solicitar una traducción y una lectura en grafía española del **original**, en un objeto validado. Se usa `store: false`. El texto se envía a `api.openai.com`; la clave permanece en el servidor.
 
 El proveedor solo se utiliza al configurarlo explícitamente y no se llama para los personajes demo. Los resultados se muestran al completarse la solicitud, con hasta 8 segundos de espera; no se promete una latencia fija ni streaming de palabras. Si falla, se mantiene el original. Las pruebas del proveedor usan respuestas simuladas; no se ha realizado una llamada con una clave real. Las tres partes no se inventan para mensajes libres cuando falta el proveedor.
+
+### Imágenes aportadas para Emma y Lisa
+
+Emma usa la primera imagen aportada por el usuario (`public/portraits/emma-reference.jpg`). El antiguo personaje Yuki ahora se muestra como Lisa con la segunda imagen (`public/portraits/lisa.jpg`). Se conserva el ID interno `demo-yuki` para mantener matches, bloqueos y conversaciones anteriores. Los nombres, edades, países y biografías de estos perfiles siguen siendo datos ficticios de la demo; las imágenes no implican participación o respaldo de las personas representadas.

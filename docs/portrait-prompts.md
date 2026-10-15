@@ -1,4 +1,8 @@
-# Retratos de la demo
+# Imágenes actuales y procedencia
+
+Emma utiliza `public/portraits/emma-reference.jpg`, procedente de la primera imagen adjunta por el usuario. Lisa (antes Yuki) utiliza `public/portraits/lisa.jpg`, procedente de la segunda imagen adjunta. Se copiaron como JPEG sin cambiar su contenido. No se afirma la identidad, nacionalidad, participación ni respaldo de las personas de estas fotos. La información de los personajes es ficticia. Los retratos generados anteriores de Emma y Yuki se conservan como recursos históricos y ya no se usan en sus perfiles.
+
+## Historial de los retratos generados
 
 Los retratos de Sofía, Lucas, Yuki y Emma fueron generados con la herramienta integrada Imagegen. Representan adultos ficticios; sus nombres, países, biografías y preferencias forman parte de personajes de demostración. No se atribuye ninguna nacionalidad ni participación en una aplicación de citas a personas reales. La foto previa de Kasia se conserva del repositorio original.
 
