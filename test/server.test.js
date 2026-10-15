@@ -8,7 +8,7 @@ import { createApp } from '../server.js';
 
 const profile = (name = 'Rafael') => ({ name, age: 26, city: 'Lima', country: 'Perú', language: 'Español', intention: 'Relación', bio: 'Me encanta viajar y conocer culturas diferentes.', interests: ['Café', 'Viajes'] });
 async function start(t, options = {}) {
-  const server = createApp({ databasePath: ':memory:', ...options });
+  const server = await createApp({ databasePath: ':memory:', ...options });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;

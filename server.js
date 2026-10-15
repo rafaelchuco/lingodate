@@ -1,8 +1,8 @@
 import { createServer } from 'node:http';
-import { DatabaseSync } from 'node:sqlite';
+import { openDatabase } from './database.js';
 import { randomBytes, randomUUID, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createTranslator } from './translation.js';
@@ -22,6 +22,14 @@ class HttpError extends Error {
 }
 const assert = (condition, status, message) => { if (!condition) throw new HttpError(status, message); };
 async function body(req) {
+  if (req.body !== undefined) {
+    const raw = typeof req.body === 'string' || Buffer.isBuffer(req.body) ? String(req.body) : JSON.stringify(req.body);
+    assert(Buffer.byteLength(raw) <= MAX_BODY, 413, 'La solicitud es demasiado grande.');
+    let value;
+    try { value = JSON.parse(raw); } catch { throw new HttpError(400, 'JSON no válido.'); }
+    assert(value && typeof value === 'object' && !Array.isArray(value), 400, 'Se espera un objeto JSON.');
+    return value;
+  }
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
@@ -50,10 +58,9 @@ function validateProfile(input) {
   return { name, age, city, bio, gender, country: input.country, language: input.language, intention: input.intention, interests };
 }
 
-export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(root, 'data/lingodate.sqlite'), secureCookie = process.env.COOKIE_SECURE === 'true', translator = createTranslator() } = {}) {
-  if (databasePath !== ':memory:') mkdirSync(dirname(resolve(databasePath)), { recursive: true });
-  const db = new DatabaseSync(databasePath);
-  db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;
+export async function createApp({ databasePath = process.env.DATABASE_PATH || resolve(root, 'data/lingodate.sqlite'), secureCookie = process.env.COOKIE_SECURE === 'true' || Boolean(process.env.VERCEL), translator = createTranslator(), database } = {}) {
+  const db = database || await openDatabase({ path: databasePath });
+  await db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY, email TEXT UNIQUE, password TEXT, salt TEXT,
       name TEXT NOT NULL, age INTEGER NOT NULL, city TEXT NOT NULL, country TEXT NOT NULL,
@@ -69,17 +76,23 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
     CREATE TABLE IF NOT EXISTS blocks (user_id TEXT REFERENCES users(id) ON DELETE CASCADE, target_id TEXT REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY(user_id,target_id));
     CREATE INDEX IF NOT EXISTS message_match ON messages(match_id,created);
   `);
-  // Additive migrations preserve existing accounts and conversations.
-  if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === 'gender')) db.exec("ALTER TABLE users ADD COLUMN gender TEXT NOT NULL DEFAULT 'unspecified'");
-  for (const column of ['pronunciation', 'source_language']) if (!db.prepare('PRAGMA table_info(translations)').all().some(c => c.name === column)) db.exec(`ALTER TABLE translations ADD COLUMN ${column} TEXT`);
-  const run = (sql, ...args) => db.prepare(sql).run(...args);
-  const get = (sql, ...args) => db.prepare(sql).get(...args);
-  const all = (sql, ...args) => db.prepare(sql).all(...args);
+  // Concurrent cold starts may attempt the same additive migration.
+  async function ensureColumn(table, column, definition) {
+    if ((await db.all(`PRAGMA table_info(${table})`)).some(c => c.name === column)) return;
+    try { await db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`); }
+    catch (error) { if (!(await db.all(`PRAGMA table_info(${table})`)).some(c => c.name === column)) throw error; }
+  }
+  await ensureColumn('users', 'gender', "TEXT NOT NULL DEFAULT 'unspecified'");
+  await ensureColumn('translations', 'pronunciation', 'TEXT');
+  await ensureColumn('translations', 'source_language', 'TEXT');
+  const run = (sql, ...args) => db.run(sql, ...args);
+  const get = (sql, ...args) => db.get(sql, ...args);
+  const all = (sql, ...args) => db.all(sql, ...args);
   const publicUser = u => ({ id: u.id, name: u.name, age: u.age, city: u.city, country: u.country, language: u.language, intention: u.intention, bio: u.bio, interests: JSON.parse(u.interests), demo: Boolean(u.demo), fictional: Boolean(u.actor), gender: u.gender });
-  const insertUser = (id, p, email = null, password = null, salt = null, demo = 0, actor = 0) => {
-    run('INSERT INTO users (id,email,password,salt,name,age,city,country,language,intention,bio,interests,demo,actor,created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, email, password, salt, p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), demo, actor, Date.now());
-    if (p.gender) run('UPDATE users SET gender=? WHERE id=?', p.gender, id);
-    return get('SELECT * FROM users WHERE id=?', id);
+  const insertUser = async (id, p, email = null, password = null, salt = null, demo = 0, actor = 0) => {
+    (await run(`INSERT ${actor ? 'OR IGNORE ' : ''}INTO users (id,email,password,salt,name,age,city,country,language,intention,bio,interests,demo,actor,created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, id, email, password, salt, p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), demo, actor, Date.now()));
+    if (p.gender) (await run('UPDATE users SET gender=? WHERE id=?', p.gender, id));
+    return (await get('SELECT * FROM users WHERE id=?', id));
   };
   const actors = [
     ['kasia', 'Kasia', 25, 'Varsovia', 'Polonia', 'Polaco', 'Relación', 'Colecciono libros, rincones con buen café y planes espontáneos. ¿Me enseñas tu ciudad?', ['Café', 'Viajes', 'Fotografía']],
@@ -90,28 +103,28 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
     ['sofia', 'Sofía', 24, 'Lima', 'Perú', 'Español', 'Amistad', 'Amante del mar, los atardeceres y la comida peruana. Mi siguiente aventura: aprender portugués.', ['Playa', 'Cocina', 'Viajes']]
   ];
   for (const [id, name, age, city, country, language, intention, bio, interests] of actors) {
-    if (!get('SELECT id FROM users WHERE id=?', `demo-${id}`)) insertUser(`demo-${id}`, { name, age, city, country, language, intention, bio, interests }, null, null, null, 1, 1);
+    if (!(await get('SELECT id FROM users WHERE id=?', `demo-${id}`))) (await insertUser(`demo-${id}`, { name, age, city, country, language, intention, bio, interests }, null, null, null, 1, 1));
   }
   const actorGenders = { kasia: 'woman', sofia: 'woman', yuki: 'woman', emma: 'woman', lucas: 'man', alex: 'man' };
-  for (const [id, gender] of Object.entries(actorGenders)) run('UPDATE users SET gender=? WHERE id=?', gender, 'demo-' + id);
-  run('UPDATE users SET name=? WHERE id=?', 'Álex', 'demo-alex');
+  for (const [id, gender] of Object.entries(actorGenders)) (await run('UPDATE users SET gender=? WHERE id=?', gender, 'demo-' + id));
+  (await run('UPDATE users SET name=? WHERE id=?', 'Álex', 'demo-alex'));
   // Keep the original ID so existing matches and conversations follow the renamed profile.
-  run('UPDATE users SET name=? WHERE id=?', 'Lisa', 'demo-yuki');
-  function saveDemoMessage(matchId, actor, phrase) {
+  (await run('UPDATE users SET name=? WHERE id=?', 'Lisa', 'demo-yuki'));
+  async function saveDemoMessage(matchId, actor, phrase) {
     const id = randomUUID();
-    run('INSERT INTO messages VALUES (?,?,?,?,?)', id, matchId, actor.id, phrase.original, Date.now());
-    run('INSERT INTO translations (message_id,text,language,status,pronunciation,source_language) VALUES (?,?,?,?,?,?)', id, phrase.translation, 'Español', 'demo', phrase.pronunciation, actor.language);
+    (await run('INSERT INTO messages VALUES (?,?,?,?,?)', id, matchId, actor.id, phrase.original, Date.now()));
+    (await run('INSERT INTO translations (message_id,text,language,status,pronunciation,source_language) VALUES (?,?,?,?,?,?)', id, phrase.translation, 'Español', 'demo', phrase.pronunciation, actor.language));
   }
   // Upgrade only the known canned messages previously written by fictional actors.
   const legacyReplies = ['¡Me encanta conocer nuevas culturas! Cuéntame más sobre ti.', 'Un café y una buena conversación suenan como un gran plan ☕', '¿Qué lugar de tu país me recomendarías visitar primero?'];
-  for (const message of all('SELECT m.*,u.language,u.name FROM messages m JOIN users u ON m.sender_id=u.id WHERE u.actor=1')) {
+  for (const message of (await all('SELECT m.*,u.language,u.name FROM messages m JOIN users u ON m.sender_id=u.id WHERE u.actor=1'))) {
     let phrase = findDemoPhrase(message.language, message.text);
     const oldReply = legacyReplies.indexOf(message.text);
     if (oldReply >= 0) phrase = demoPhrase(message.language, oldReply + 1);
     if (message.text.startsWith('¡Hola! Soy ') && message.text.endsWith('¿Qué es lo que más te gusta de tu ciudad?')) phrase = demoPhrase(message.language, 0);
     if (phrase) {
-      run('UPDATE messages SET text=? WHERE id=?', phrase.original, message.id);
-      run('INSERT INTO translations (message_id,text,language,status,pronunciation,source_language) VALUES (?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET text=excluded.text,pronunciation=excluded.pronunciation,source_language=excluded.source_language,status=excluded.status', message.id, phrase.translation, 'Español', 'demo', phrase.pronunciation, message.language);
+      (await run('UPDATE messages SET text=? WHERE id=?', phrase.original, message.id));
+      (await run('INSERT INTO translations (message_id,text,language,status,pronunciation,source_language) VALUES (?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET text=excluded.text,pronunciation=excluded.pronunciation,source_language=excluded.source_language,status=excluded.status', message.id, phrase.translation, 'Español', 'demo', phrase.pronunciation, message.language));
     }
   }
   const limits = new Map();
@@ -122,22 +135,22 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
     assert(++entry.count <= max, 429, 'Demasiados intentos. Espera un minuto.');
     if (limits.size > 10_000) for (const [k, v] of limits) if (v.until < now) limits.delete(k);
   }
-  const blocked = (a, b) => get('SELECT 1 FROM blocks WHERE (user_id=? AND target_id=?) OR (user_id=? AND target_id=?)', a, b, b, a);
-  function session(req) {
+  const blocked = async (a, b) => (await get('SELECT 1 FROM blocks WHERE (user_id=? AND target_id=?) OR (user_id=? AND target_id=?)', a, b, b, a));
+  async function session(req) {
     const token = /(?:^|;\s*)lingodate=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
-    const user = token && get('SELECT users.* FROM sessions JOIN users ON users.id=sessions.user_id WHERE token=? AND expires>?', digest(token), Date.now());
+    const user = token && (await get('SELECT users.* FROM sessions JOIN users ON users.id=sessions.user_id WHERE token=? AND expires>?', digest(token), Date.now()));
     assert(user && !user.actor, 401, 'Inicia sesión para continuar.');
     return user;
   }
-  function setSession(res, id) {
+  async function setSession(res, id) {
     const token = randomBytes(32).toString('hex');
-    run('DELETE FROM sessions WHERE expires<?', Date.now());
-    run('INSERT INTO sessions VALUES (?,?,?)', digest(token), id, Date.now() + 7 * DAY);
+    (await run('DELETE FROM sessions WHERE expires<?', Date.now()));
+    (await run('INSERT INTO sessions VALUES (?,?,?)', digest(token), id, Date.now() + 7 * DAY));
     res.setHeader('Set-Cookie', `lingodate=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${secureCookie ? '; Secure' : ''}`);
   }
-  function matchFor(user, id) {
-    const match = get('SELECT * FROM matches WHERE id=? AND (a=? OR b=?)', id, user.id, user.id);
-    assert(match && !blocked(match.a, match.b), 404, 'Conversación no disponible.');
+  async function matchFor(user, id) {
+    const match = (await get('SELECT * FROM matches WHERE id=? AND (a=? OR b=?)', id, user.id, user.id));
+    assert(match && !(await blocked(match.a, match.b)), 404, 'Conversación no disponible.');
     return match;
   }
   const server = createServer(async (req, res) => {
@@ -161,14 +174,14 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
       assert(!req.headers['sec-fetch-site'] || req.headers['sec-fetch-site'] !== 'cross-site', 403, 'Solicitud de otro sitio no permitida.');
       if (req.headers.origin) assert(new URL(req.headers.origin).host === req.headers.host, 403, 'Origen no permitido.');
       if (req.method !== 'GET') assert((req.headers['content-type'] || '').startsWith('application/json'), 415, 'Usa application/json.');
-      limit(`api:${req.socket.remoteAddress}`, 300);
+      limit(`api:${req.socket?.remoteAddress || 'function'}`, 300);
       const path = url.pathname;
       if (req.method === 'POST' && ['/api/register', '/api/login', '/api/demo'].includes(path)) {
         limit(`auth:${req.socket.remoteAddress}`, 15);
         const input = await body(req);
         let user;
         if (path === '/api/demo') {
-          user = insertUser(randomUUID(), { name: 'Viajero', age: 26, city: 'Lima', country: 'Perú', language: 'Español', intention: 'Intercambio cultural', bio: 'Explorando nuevas culturas y conexiones alrededor del mundo.', interests: ['Viajes', 'Café', 'Idiomas'] }, null, null, null, 1);
+          user = (await insertUser(randomUUID(), { name: 'Viajero', age: 26, city: 'Lima', country: 'Perú', language: 'Español', intention: 'Intercambio cultural', bio: 'Explorando nuevas culturas y conexiones alrededor del mundo.', interests: ['Viajes', 'Café', 'Idiomas'] }, null, null, null, 1));
         } else {
           const email = clean(input.email, 254).toLowerCase();
           assert(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 400, 'Ingresa un correo válido.');
@@ -176,122 +189,124 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
           if (path === '/api/register') {
             const p = validateProfile(input);
             assert(input.adult === true, 400, 'Debes confirmar que eres mayor de edad.');
-            assert(!get('SELECT id FROM users WHERE email=?', email), 409, 'Ya existe una cuenta con ese correo.');
+            assert(!(await get('SELECT id FROM users WHERE email=?', email)), 409, 'Ya existe una cuenta con ese correo.');
             const salt = randomBytes(16).toString('hex');
             const password = (await hashPassword(input.password, salt, 64)).toString('hex');
             // Recheck after the asynchronous password hash to avoid concurrent duplicate registration.
-            assert(!get('SELECT id FROM users WHERE email=?', email), 409, 'Ya existe una cuenta con ese correo.');
-            user = insertUser(randomUUID(), p, email, password, salt);
+            assert(!(await get('SELECT id FROM users WHERE email=?', email)), 409, 'Ya existe una cuenta con ese correo.');
+            user = (await insertUser(randomUUID(), p, email, password, salt));
           } else {
-            user = get('SELECT * FROM users WHERE email=? AND demo=0', email);
+            user = (await get('SELECT * FROM users WHERE email=? AND demo=0', email));
             const candidate = await hashPassword(input.password, user?.salt || 'lingodate-placeholder', 64);
             assert(user && timingSafeEqual(candidate, Buffer.from(user.password, 'hex')), 401, 'Correo o contraseña incorrectos.');
           }
         }
-        setSession(res, user.id);
+        (await setSession(res, user.id));
         return json(200, { user: publicUser(user) });
       }
       if (path === '/api/config' && req.method === 'GET') return json(200, { translation: { enabled: translator.enabled, host: translator.host } });
-      const user = session(req);
+      const user = (await session(req));
       if (path === '/api/me' && req.method === 'GET') return json(200, { user: publicUser(user) });
       if (path === '/api/logout' && req.method === 'POST') {
         const token = /lingodate=([a-f0-9]{64})/.exec(req.headers.cookie || '')?.[1];
-        if (token) run('DELETE FROM sessions WHERE token=?', digest(token));
+        if (token) (await run('DELETE FROM sessions WHERE token=?', digest(token)));
         res.setHeader('Set-Cookie', `lingodate=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secureCookie ? '; Secure' : ''}`);
         return json(200, { ok: true });
       }
       if (path === '/api/profile' && req.method === 'PUT') {
         const input = await body(req);
         const p = validateProfile({ ...input, gender: input.gender || user.gender });
-        run('UPDATE users SET name=?,age=?,city=?,country=?,language=?,intention=?,bio=?,interests=? WHERE id=?', p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), user.id);
-        run('UPDATE users SET gender=? WHERE id=?', p.gender, user.id);
-        return json(200, { user: publicUser(get('SELECT * FROM users WHERE id=?', user.id)) });
+        (await run('UPDATE users SET name=?,age=?,city=?,country=?,language=?,intention=?,bio=?,interests=? WHERE id=?', p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), user.id));
+        (await run('UPDATE users SET gender=? WHERE id=?', p.gender, user.id));
+        return json(200, { user: publicUser((await get('SELECT * FROM users WHERE id=?', user.id))) });
       }
       if (path === '/api/account' && req.method === 'DELETE') {
-        run('DELETE FROM users WHERE id=?', user.id);
+        (await run('DELETE FROM users WHERE id=?', user.id));
         res.setHeader('Set-Cookie', `lingodate=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secureCookie ? '; Secure' : ''}`);
         return json(200, { ok: true });
       }
-      if (path === '/api/preferences' && req.method === 'GET') return json(200, { explorer: get('SELECT explorer FROM preferences WHERE user_id=?', user.id)?.explorer || 'viajero' });
+      if (path === '/api/preferences' && req.method === 'GET') return json(200, { explorer: (await get('SELECT explorer FROM preferences WHERE user_id=?', user.id))?.explorer || 'viajero' });
       if (path === '/api/preferences' && req.method === 'PUT') {
         const input = await body(req);
         assert(['viajero', 'viajera'].includes(input.explorer), 400, 'Elige viajero o viajera.');
-        run('INSERT INTO preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET explorer=excluded.explorer', user.id, input.explorer);
-        if (user.demo && ['Viajero', 'Viajera'].includes(user.name)) run('UPDATE users SET name=? WHERE id=?', input.explorer === 'viajero' ? 'Viajero' : 'Viajera', user.id);
+        (await run('INSERT INTO preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET explorer=excluded.explorer', user.id, input.explorer));
+        if (user.demo && ['Viajero', 'Viajera'].includes(user.name)) (await run('UPDATE users SET name=? WHERE id=?', input.explorer === 'viajero' ? 'Viajero' : 'Viajera', user.id));
         return json(200, { explorer: input.explorer });
       }
       if (path === '/api/discover' && req.method === 'GET') {
-        const profiles = all(`SELECT * FROM users u WHERE u.id!=? AND u.demo=? AND u.actor=?
+        const profiles = (await all(`SELECT * FROM users u WHERE u.id!=? AND u.demo=? AND u.actor=?
           AND NOT EXISTS(SELECT 1 FROM decisions d WHERE d.user_id=? AND d.target_id=u.id AND NOT (d.liked=1 AND EXISTS(SELECT 1 FROM matches m WHERE (m.a=? AND m.b=u.id) OR (m.b=? AND m.a=u.id))))
           AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.user_id=? AND b.target_id=u.id) OR (b.target_id=? AND b.user_id=u.id))
           AND (?='' OR u.gender=?) AND (?='' OR u.country=?) AND (?='' OR u.language=?) AND (?='' OR u.intention=?) ORDER BY created DESC LIMIT 100`, user.id, user.demo, user.demo ? 1 : 0, user.id, user.id, user.id, user.id, user.id,
           url.searchParams.get('gender') || '', url.searchParams.get('gender') || '',
           url.searchParams.get('country') || '', url.searchParams.get('country') || '',
           url.searchParams.get('language') || '', url.searchParams.get('language') || '',
-          url.searchParams.get('intention') || '', url.searchParams.get('intention') || '').map(publicUser);
+          url.searchParams.get('intention') || '', url.searchParams.get('intention') || '')).map(publicUser);
         return json(200, { profiles });
       }
       if (path === '/api/decisions' && req.method === 'POST') {
         const input = await body(req);
-        const target = get('SELECT * FROM users WHERE id=?', clean(input.targetId, 64));
-        assert(target && target.id !== user.id && target.demo === user.demo && target.actor === (user.demo ? 1 : 0) && !blocked(user.id, target.id), 404, 'Perfil no disponible.');
+        const target = (await get('SELECT * FROM users WHERE id=?', clean(input.targetId, 64)));
+        assert(target && target.id !== user.id && target.demo === user.demo && target.actor === (user.demo ? 1 : 0) && !(await blocked(user.id, target.id)), 404, 'Perfil no disponible.');
         assert(typeof input.like === 'boolean', 400, 'Decisión no válida.');
-        run('INSERT INTO decisions VALUES (?,?,?) ON CONFLICT(user_id,target_id) DO UPDATE SET liked=excluded.liked', user.id, target.id, input.like ? 1 : 0);
+        (await run('INSERT INTO decisions VALUES (?,?,?) ON CONFLICT(user_id,target_id) DO UPDATE SET liked=excluded.liked', user.id, target.id, input.like ? 1 : 0));
         let match = null;
-        if (input.like && (target.actor || get('SELECT 1 FROM decisions WHERE user_id=? AND target_id=? AND liked=1', target.id, user.id))) {
+        if (input.like && (target.actor || (await get('SELECT 1 FROM decisions WHERE user_id=? AND target_id=? AND liked=1', target.id, user.id)))) {
           const [a, b] = [user.id, target.id].sort();
-          run('INSERT OR IGNORE INTO matches VALUES (?,?,?,?)', randomUUID(), a, b, Date.now());
-          match = get('SELECT id FROM matches WHERE a=? AND b=?', a, b);
-          if (target.actor && !get('SELECT id FROM messages WHERE match_id=?', match.id)) saveDemoMessage(match.id, target, demoPhrase(target.language, 0));
+          (await run('INSERT OR IGNORE INTO matches VALUES (?,?,?,?)', randomUUID(), a, b, Date.now()));
+          match = (await get('SELECT id FROM matches WHERE a=? AND b=?', a, b));
+          if (target.actor && !(await get('SELECT id FROM messages WHERE match_id=?', match.id))) (await saveDemoMessage(match.id, target, demoPhrase(target.language, 0)));
         }
         return json(200, { match });
       }
       if (path === '/api/discover/reset' && req.method === 'POST') {
         assert(user.demo, 403, 'Esta opción está disponible en la demo.');
-        run('DELETE FROM decisions WHERE user_id=? AND liked=0', user.id);
+        (await run('DELETE FROM decisions WHERE user_id=? AND liked=0', user.id));
         return json(200, { ok: true });
       }
       if (path === '/api/matches' && req.method === 'GET') {
-        const matches = all('SELECT * FROM matches WHERE a=? OR b=? ORDER BY created DESC', user.id, user.id).filter(m => !blocked(m.a, m.b)).map(m => {
-          const peer = get('SELECT * FROM users WHERE id=?', m.a === user.id ? m.b : m.a);
-          return { id: m.id, user: publicUser(peer), lastMessage: get('SELECT text,created FROM messages WHERE match_id=? ORDER BY created DESC,rowid DESC LIMIT 1', m.id) || null };
-        });
+        const matches = [];
+        for (const m of (await all('SELECT * FROM matches WHERE a=? OR b=? ORDER BY created DESC', user.id, user.id))) {
+          if ((await blocked(m.a, m.b))) continue;
+          const peer = (await get('SELECT * FROM users WHERE id=?', m.a === user.id ? m.b : m.a));
+          matches.push({ id: m.id, user: publicUser(peer), lastMessage: (await get('SELECT text,created FROM messages WHERE match_id=? ORDER BY created DESC,rowid DESC LIMIT 1', m.id)) || null });
+        }
         return json(200, { matches });
       }
       const messageRoute = /^\/api\/matches\/([a-zA-Z0-9-]+)\/messages$/.exec(path);
       if (messageRoute && ['GET', 'POST'].includes(req.method)) {
-        const match = matchFor(user, messageRoute[1]);
+        const match = (await matchFor(user, messageRoute[1]));
         if (req.method === 'POST') {
           limit(`message:${user.id}`, 30);
           const input = await body(req);
           assert(typeof input.text === 'string' && input.text.trim().length > 0 && input.text.trim().length <= 2000, 400, 'Escribe un mensaje de entre 1 y 2000 caracteres.');
           const messageId = randomUUID();
-          run('INSERT INTO messages VALUES (?,?,?,?,?)', messageId, match.id, user.id, input.text.trim(), Date.now());
-          const peer = get('SELECT * FROM users WHERE id=?', match.a === user.id ? match.b : match.a);
+          (await run('INSERT INTO messages VALUES (?,?,?,?,?)', messageId, match.id, user.id, input.text.trim(), Date.now()));
+          const peer = (await get('SELECT * FROM users WHERE id=?', match.a === user.id ? match.b : match.a));
           if (!user.demo && translator.enabled && user.language !== peer.language) {
-            run('INSERT INTO translations (message_id,text,language,status,source_language) VALUES (?,?,?,?,?)', messageId, null, peer.language, 'pending', user.language);
+            (await run('INSERT INTO translations (message_id,text,language,status,source_language) VALUES (?,?,?,?,?)', messageId, null, peer.language, 'pending', user.language));
             try {
               const result = translator.analyze ? await translator.analyze(input.text.trim(), user.language, peer.language) : { translatedText: await translator.translate(input.text.trim(), user.language, peer.language), pronunciation: null };
-              run('UPDATE translations SET text=?,pronunciation=?,status=? WHERE message_id=?', result.translatedText, result.pronunciation, result.translatedText ? 'translated' : 'unavailable', messageId);
+              (await run('UPDATE translations SET text=?,pronunciation=?,status=? WHERE message_id=?', result.translatedText, result.pronunciation, result.translatedText ? 'translated' : 'unavailable', messageId));
             } catch {
               // Deliver the original even when the provider is unavailable. Never log private text.
-              run('UPDATE translations SET status=? WHERE message_id=?', 'unavailable', messageId);
+              (await run('UPDATE translations SET status=? WHERE message_id=?', 'unavailable', messageId));
             }
             // The other participant may have blocked or deleted their account while awaiting translation.
-            matchFor(user, match.id);
+            (await matchFor(user, match.id));
           }
           if (peer.actor) {
-            const count = get('SELECT COUNT(*) AS n FROM messages WHERE match_id=? AND sender_id=?', match.id, user.id).n;
-            saveDemoMessage(match.id, peer, demoPhrase(peer.language, 1 + (count - 1) % 3));
+            const count = (await get('SELECT COUNT(*) AS n FROM messages WHERE match_id=? AND sender_id=?', match.id, user.id)).n;
+            (await saveDemoMessage(match.id, peer, demoPhrase(peer.language, 1 + (count - 1) % 3)));
           }
         }
-        return json(200, { messages: all('SELECT m.id,m.sender_id AS senderId,m.text,m.created,t.text AS translatedText,t.language AS translatedLanguage,t.status AS translationStatus,t.pronunciation,t.source_language AS sourceLanguage FROM (SELECT rowid AS seq,* FROM messages WHERE match_id=? ORDER BY created DESC,rowid DESC LIMIT 200) m LEFT JOIN translations t ON t.message_id=m.id ORDER BY m.created,m.seq', match.id) });
+        return json(200, { messages: (await all('SELECT m.id,m.sender_id AS senderId,m.text,m.created,t.text AS translatedText,t.language AS translatedLanguage,t.status AS translationStatus,t.pronunciation,t.source_language AS sourceLanguage FROM (SELECT rowid AS seq,* FROM messages WHERE match_id=? ORDER BY created DESC,rowid DESC LIMIT 200) m LEFT JOIN translations t ON t.message_id=m.id ORDER BY m.created,m.seq', match.id)) });
       }
       if (path === '/api/blocks' && req.method === 'POST') {
         const input = await body(req);
-        const target = get('SELECT * FROM users WHERE id=?', clean(input.targetId, 64));
+        const target = (await get('SELECT * FROM users WHERE id=?', clean(input.targetId, 64)));
         assert(target && target.id !== user.id && target.demo === user.demo, 404, 'Perfil no disponible.');
-        run('INSERT OR IGNORE INTO blocks VALUES (?,?)', user.id, target.id);
+        (await run('INSERT OR IGNORE INTO blocks VALUES (?,?)', user.id, target.id));
         return json(200, { ok: true });
       }
       throw new HttpError(404, 'Recurso no encontrado.');
@@ -308,7 +323,7 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT || 3000);
   const host = process.env.HOST || '127.0.0.1';
-  const server = createApp();
+  const server = await createApp();
   server.listen(port, host, () => console.log(`LingōDate → http://${host}:${port}`));
   for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => server.close(() => process.exit(0)));
 }

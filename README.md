@@ -4,9 +4,10 @@ MVP web de conexiones interculturales. Convierte la landing original en una apli
 
 ## Ejecutar
 
-Requiere **Node.js 24 o superior**. No usa dependencias de terceros ni necesita `npm install`.
+Requiere **Node.js 24**. Instala las dependencias del cliente de base de datos antes de ejecutar.
 
 ```sh
+npm ci
 npm start
 ```
 
@@ -64,7 +65,7 @@ La espera del proveedor tiene un máximo de 8 segundos. Si falla, se conserva y 
 
 ## Datos y seguridad implementada
 
-Servidor Node HTTP y SQLite nativo, sin servicios externos obligatorios. Contraseñas con scrypt y sal aleatoria; tokens de sesión aleatorios guardados como SHA-256 en la base de datos. Cookies HttpOnly, SameSite=Lax y vencimiento de 7 días. Consultas parametrizadas, comprobación de participantes en cada operación de chat, escape de contenido en la interfaz, CSP restrictiva, protección de origen, límites de tamaño y rate limiting básico en memoria.
+Servidor Node HTTP con SQLite nativo en local y libSQL/Turso remoto para Vercel. Contraseñas con scrypt y sal aleatoria; tokens de sesión aleatorios guardados como SHA-256 en la base de datos. Cookies HttpOnly, SameSite=Lax y vencimiento de 7 días. Consultas parametrizadas, comprobación de participantes en cada operación de chat, escape de contenido en la interfaz, CSP restrictiva, protección de origen, límites de tamaño y rate limiting básico en memoria.
 
 El correo y los hashes no forman parte de los perfiles públicos. No se publica una dirección exacta. No hay analítica, fuentes remotas ni rastreadores. La imagen `public/kasia.jpg` proviene del repositorio original y solo ilustra un perfil ficticio.
 
@@ -81,7 +82,7 @@ Las pruebas HTTP cubren registro, login, validación de adultos, sesiones, aisla
 
 ## Despliegue
 
-Esto requiere **un servidor Node con disco persistente**. GitHub Pages por sí solo no puede ejecutar la API ni guardar cuentas. Subir el código a GitHub no publica automáticamente una aplicación con backend.
+Puedes desplegar con **Vercel + Turso** (ver abajo), o con un servidor Node y disco persistente. GitHub Pages por sí solo no puede ejecutar la API ni guardar cuentas.
 
 También se incluye un Dockerfile:
 
@@ -90,7 +91,7 @@ docker build -t lingodate .
 docker run --rm -p 3000:3000 -v lingodate-data:/app/data lingodate
 ```
 
-El Dockerfile no se ha ejecutado en este entorno. En hosting público, termina HTTPS en un proxy, usa `COOKIE_SECURE=true`, mantén el archivo SQLite fuera del directorio público y configura copias de seguridad. El backend debe ejecutarse en una sola instancia que use ese disco; no se ha diseñado para almacenamiento efímero ni múltiples réplicas.
+El Dockerfile no se ha ejecutado en este entorno. En hosting público, termina HTTPS en un proxy, usa `COOKIE_SECURE=true`, mantén el archivo SQLite fuera del directorio público y configura copias de seguridad. El modo de archivo local requiere una sola instancia con ese disco. En Vercel, usa el modo Turso remoto para compartir datos persistentes entre funciones.
 
 ## Límites del MVP
 
@@ -147,3 +148,16 @@ El proveedor solo se utiliza al configurarlo explícitamente y no se llama para 
 Emma usa la primera imagen aportada por el usuario (`public/portraits/emma-reference.jpg`). El antiguo personaje Yuki ahora se muestra como Lisa con la segunda imagen (`public/portraits/lisa.jpg`). Se conserva el ID interno `demo-yuki` para mantener matches, bloqueos y conversaciones anteriores. Los nombres, edades, países y biografías de estos perfiles siguen siendo datos ficticios de la demo; las imágenes no implican participación o respaldo de las personas representadas.
 
 Sofía utiliza la imagen aportada posteriormente por el usuario, guardada como `public/portraits/sofia.jpg`, en lugar de su retrato generado anterior.
+
+## Despliegue en Vercel
+
+`vercel.json` define un build estático seguro en `dist/` y enruta `/api/*` a `api/index.js`. La función reutiliza el backend sin ejecutar `listen()`. La raíz `index.html` se copia explícitamente al directorio publicado para evitar un `404 NOT_FOUND` cuando Vercel elige `public/` como salida. No se publican archivos fuente, claves ni bases de datos.
+
+1. Conecta una base **Turso / Serverless SQLite** desde Storage del proyecto en Vercel.
+2. Configura `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` como variables del servidor para Production y Preview. No uses prefijos públicos para estas claves.
+3. Selecciona Node.js 24 y el directorio raíz del repositorio. El build y el directorio de salida quedan definidos en `vercel.json`.
+4. Despliega el commit de `main`. Las cookies se marcan Secure automáticamente en Vercel.
+
+El cliente remoto utiliza consultas parametrizadas y el mismo esquema SQLite. Las migraciones son aditivas. El archivo SQLite local no se sube automáticamente al proveedor. En Vercel, si no se configura almacenamiento remoto, la API responde 503 con una indicación de configuración; no guarda cuentas o chats en un archivo temporal ni promete que esos datos sobrevivirán. La portada y los recursos estáticos se sirven independientemente de la base.
+
+Referencias: [funciones Node de Vercel](https://vercel.com/docs/functions/runtimes/node-js), [límites de SQLite local en Vercel](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel) y [cliente oficial de Turso/libSQL](https://docs.turso.tech/sdk/ts/reference).
