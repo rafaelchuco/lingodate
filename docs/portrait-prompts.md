@@ -1,6 +1,6 @@
 # Imágenes actuales y procedencia
 
-Emma utiliza `public/portraits/emma-reference.jpg`, procedente de la primera imagen adjunta por el usuario. Lisa (antes Yuki) utiliza `public/portraits/lisa.jpg`, procedente de la segunda imagen adjunta. Se copiaron como JPEG sin cambiar su contenido. No se afirma la identidad, nacionalidad, participación ni respaldo de las personas de estas fotos. La información de los personajes es ficticia. Los retratos generados anteriores de Emma y Yuki se conservan como recursos históricos y ya no se usan en sus perfiles.
+Sofía utiliza `public/portraits/sofia.jpg`, procedente de la imagen aportada posteriormente por el usuario; sustituye al retrato de IA anterior, disponible en el historial de Git. Emma utiliza `public/portraits/emma-reference.jpg`, procedente de la primera imagen adjunta por el usuario. Lisa (antes Yuki) utiliza `public/portraits/lisa.jpg`, procedente de la segunda imagen adjunta. Se copiaron como JPEG sin cambiar su contenido. No se afirma la identidad, nacionalidad, participación ni respaldo de las personas de estas fotos. La información de los personajes es ficticia. Los retratos generados anteriores de Emma y Yuki se conservan como recursos históricos y ya no se usan en sus perfiles.
 
 ## Historial de los retratos generados
 

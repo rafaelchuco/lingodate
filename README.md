@@ -111,7 +111,7 @@ data/                    SQLite generado, excluido de Git
 
 ## Mejoras de la demo
 
-Sofía, Lucas y Álex tienen retratos generados con IA; Emma y Lisa usan imágenes aportadas por el usuario, guardadas localmente en `public/portraits/`. Las fichas ampliadas incluyen preguntas personales, pequeños detalles culturales, el plan favorito del personaje e intereses realmente compartidos con tu perfil. Los textos adicionales son ficticios y se muestran solo para los personajes demo. [Procedencia y prompts de los retratos](docs/portrait-prompts.md).
+Lucas y Álex tienen retratos generados con IA; Emma, Lisa y Sofía usan imágenes aportadas por el usuario, guardadas localmente en `public/portraits/`. Las fichas ampliadas incluyen preguntas personales, pequeños detalles culturales, el plan favorito del personaje e intereses realmente compartidos con tu perfil. Los textos adicionales son ficticios y se muestran solo para los personajes demo. [Procedencia y prompts de los retratos](docs/portrait-prompts.md).
 
 El descubrimiento permite buscar por nombre, ciudad, biografía o interés entre los perfiles cargados, ordenar por intereses en común o nombre y explorar países con accesos rápidos. La coincidencia de intereses se calcula a partir de las selecciones de ambos perfiles; no representa un porcentaje de compatibilidad psicológica.
 
@@ -145,3 +145,5 @@ El proveedor solo se utiliza al configurarlo explícitamente y no se llama para 
 ### Imágenes aportadas para Emma y Lisa
 
 Emma usa la primera imagen aportada por el usuario (`public/portraits/emma-reference.jpg`). El antiguo personaje Yuki ahora se muestra como Lisa con la segunda imagen (`public/portraits/lisa.jpg`). Se conserva el ID interno `demo-yuki` para mantener matches, bloqueos y conversaciones anteriores. Los nombres, edades, países y biografías de estos perfiles siguen siendo datos ficticios de la demo; las imágenes no implican participación o respaldo de las personas representadas.
+
+Sofía utiliza la imagen aportada posteriormente por el usuario, guardada como `public/portraits/sofia.jpg`, en lugar de su retrato generado anterior.
