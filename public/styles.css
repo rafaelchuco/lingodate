@@ -140,6 +140,7 @@ textarea{resize:vertical;min-height:47px;max-height:220px}
 .checkbox-row{flex-direction:row;align-items:flex-start;font-size:11px;gap:10px}
 .checkbox-row input{accent-color:var(--accent);margin:4px 0;width:15px;height:15px;flex-shrink:0}
 .form-error{font-size:12px;color:var(--accent);margin-bottom:12px;min-height:0}
+.quick-access-note{font-size:12px;color:var(--muted);line-height:1.7;margin:14px 0 24px}.real-account{border-top:1px solid var(--border);padding-top:20px}.real-account summary{cursor:pointer;color:var(--muted);font-size:13px}.real-account[open] summary{margin-bottom:24px}
 .form-switch{text-align:center;margin:20px 0 0!important}
 .back{font-size:11px}
 .privacy-link{padding-top:0;margin-bottom:15px}
