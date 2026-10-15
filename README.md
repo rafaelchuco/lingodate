@@ -118,3 +118,26 @@ El descubrimiento permite buscar por nombre, ciudad, biografía o interés entre
 En Mi perfil se muestra un progreso basado en campos completados. “Viajero” sigue siendo el nombre inicial de una sesión demo y puede editarse; nunca se asigna el nombre del dueño del repositorio a visitantes.
 
 Desde un chat con match, **Proponer un plan** prepara una invitación para un encuentro virtual de café, música o intercambio cultural, con fecha, duración y zona horaria del navegador. El usuario revisa y puede editar el borrador antes de enviarlo. La propuesta solo queda guardada como mensaje cuando se pulsa Enviar; no crea reservas, llamadas ni eventos de calendario.
+
+## Países, viajeros y chat de tres partes
+
+La barra **Hola, viajero / Hola, viajera** guarda una preferencia de descubrimiento en SQLite. Viajero muestra mujeres; viajera muestra hombres. La demo presenta primero a Emma, Sofía, Yuki y Kasia, o a Lucas y Álex según la opción seleccionada. Álex también tiene un retrato generado con IA. Cambiar la selección conserva los matches y chats existentes. El género de las cuentas reales se declara en el formulario de perfil: no se deduce del nombre, foto ni opción de viajero. Los perfiles con género sin indicar no aparecen en estas selecciones.
+
+**Países** abre una pantalla independiente de destinos. Al elegir uno se muestra su vista de descubrimiento con los filtros correspondientes y una opción para volver a los otros países. Los contadores reflejan los perfiles disponibles para la preferencia seleccionada.
+
+Un perfil con match sigue visible en Descubrir con **Ya conectaron · Conversar**. Esto incluye Kasia; los perfiles bloqueados siguen ocultos y los pasados requieren el reinicio de demo ya existente.
+
+Cada mensaje muestra, en este orden y dentro de una misma tarjeta:
+
+1. El texto original con su idioma.
+2. Una pronunciación escrita aproximada para lectores de español.
+3. La traducción y el idioma de destino.
+
+`public/language-kit.js` contiene ejemplos nativos de los seis idiomas de la demo con traducciones y lecturas orientativas. Las respuestas de personajes ficticios se guardan con sus tres partes, sin llamar a servicios externos. Las respuestas antiguas conocidas de la demo se migran a estos ejemplos; los mensajes de usuarios reales se conservan. La pronunciación no es IPA ni una transcripción fonética exacta.
+
+Para mensajes libres entre cuentas reales, hay dos opciones:
+
+- **LibreTranslate:** configuración existente. Traduce, pero no genera pronunciación. La interfaz indica cuando una lectura no está disponible.
+- **OpenAI:** configurar explícitamente `LANGUAGE_PROVIDER=openai`, `OPENAI_API_KEY` y, opcionalmente, `LANGUAGE_MODEL` (predeterminado: `gpt-4.1-mini`). La integración utiliza [Responses y Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses) para solicitar una traducción y una lectura en grafía española del **original**, en un objeto validado. Se usa `store: false`. El texto se envía a `api.openai.com`; la clave permanece en el servidor.
+
+El proveedor solo se utiliza al configurarlo explícitamente y no se llama para los personajes demo. Los resultados se muestran al completarse la solicitud, con hasta 8 segundos de espera; no se promete una latencia fija ni streaming de palabras. Si falla, se mantiene el original. Las pruebas del proveedor usan respuestas simuladas; no se ha realizado una llamada con una clave real. Las tres partes no se inventan para mensajes libres cuando falta el proveedor.

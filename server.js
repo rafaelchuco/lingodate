@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createTranslator } from './translation.js';
+import { demoPhrase, findDemoPhrase } from './public/language-kit.js';
 
 const hashPassword = promisify(scrypt);
 const root = dirname(fileURLToPath(import.meta.url));
@@ -44,7 +45,9 @@ function validateProfile(input) {
   assert(intentions.includes(input.intention), 400, 'Selecciona qué buscas.');
   assert(bio.length >= 10, 400, 'Cuéntanos un poco más sobre ti (mínimo 10 caracteres).');
   const interests = Array.isArray(input.interests) ? [...new Set(input.interests.map(x => clean(x, 25)).filter(Boolean))].slice(0, 5) : [];
-  return { name, age, city, bio, country: input.country, language: input.language, intention: input.intention, interests };
+  const gender = input.gender || 'unspecified';
+  assert(['woman', 'man', 'unspecified'].includes(gender), 400, 'Selecciona una opción de género válida.');
+  return { name, age, city, bio, gender, country: input.country, language: input.language, intention: input.intention, interests };
 }
 
 export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(root, 'data/lingodate.sqlite'), secureCookie = process.env.COOKIE_SECURE === 'true', translator = createTranslator() } = {}) {
@@ -57,6 +60,7 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
       language TEXT NOT NULL, intention TEXT NOT NULL, bio TEXT NOT NULL, interests TEXT NOT NULL,
       demo INTEGER NOT NULL DEFAULT 0, actor INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS preferences (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, explorer TEXT NOT NULL DEFAULT 'viajero');
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS decisions (user_id TEXT REFERENCES users(id) ON DELETE CASCADE, target_id TEXT REFERENCES users(id) ON DELETE CASCADE, liked INTEGER NOT NULL, PRIMARY KEY(user_id,target_id));
     CREATE TABLE IF NOT EXISTS matches (id TEXT PRIMARY KEY, a TEXT REFERENCES users(id) ON DELETE CASCADE, b TEXT REFERENCES users(id) ON DELETE CASCADE, created INTEGER NOT NULL, UNIQUE(a,b));
@@ -65,12 +69,16 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
     CREATE TABLE IF NOT EXISTS blocks (user_id TEXT REFERENCES users(id) ON DELETE CASCADE, target_id TEXT REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY(user_id,target_id));
     CREATE INDEX IF NOT EXISTS message_match ON messages(match_id,created);
   `);
+  // Additive migrations preserve existing accounts and conversations.
+  if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === 'gender')) db.exec("ALTER TABLE users ADD COLUMN gender TEXT NOT NULL DEFAULT 'unspecified'");
+  for (const column of ['pronunciation', 'source_language']) if (!db.prepare('PRAGMA table_info(translations)').all().some(c => c.name === column)) db.exec(`ALTER TABLE translations ADD COLUMN ${column} TEXT`);
   const run = (sql, ...args) => db.prepare(sql).run(...args);
   const get = (sql, ...args) => db.prepare(sql).get(...args);
   const all = (sql, ...args) => db.prepare(sql).all(...args);
-  const publicUser = u => ({ id: u.id, name: u.name, age: u.age, city: u.city, country: u.country, language: u.language, intention: u.intention, bio: u.bio, interests: JSON.parse(u.interests), demo: Boolean(u.demo), fictional: Boolean(u.actor) });
+  const publicUser = u => ({ id: u.id, name: u.name, age: u.age, city: u.city, country: u.country, language: u.language, intention: u.intention, bio: u.bio, interests: JSON.parse(u.interests), demo: Boolean(u.demo), fictional: Boolean(u.actor), gender: u.gender });
   const insertUser = (id, p, email = null, password = null, salt = null, demo = 0, actor = 0) => {
-    run('INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, email, password, salt, p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), demo, actor, Date.now());
+    run('INSERT INTO users (id,email,password,salt,name,age,city,country,language,intention,bio,interests,demo,actor,created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', id, email, password, salt, p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), demo, actor, Date.now());
+    if (p.gender) run('UPDATE users SET gender=? WHERE id=?', p.gender, id);
     return get('SELECT * FROM users WHERE id=?', id);
   };
   const actors = [
@@ -83,6 +91,26 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
   ];
   for (const [id, name, age, city, country, language, intention, bio, interests] of actors) {
     if (!get('SELECT id FROM users WHERE id=?', `demo-${id}`)) insertUser(`demo-${id}`, { name, age, city, country, language, intention, bio, interests }, null, null, null, 1, 1);
+  }
+  const actorGenders = { kasia: 'woman', sofia: 'woman', yuki: 'woman', emma: 'woman', lucas: 'man', alex: 'man' };
+  for (const [id, gender] of Object.entries(actorGenders)) run('UPDATE users SET gender=? WHERE id=?', gender, 'demo-' + id);
+  run('UPDATE users SET name=? WHERE id=?', 'Álex', 'demo-alex');
+  function saveDemoMessage(matchId, actor, phrase) {
+    const id = randomUUID();
+    run('INSERT INTO messages VALUES (?,?,?,?,?)', id, matchId, actor.id, phrase.original, Date.now());
+    run('INSERT INTO translations (message_id,text,language,status,pronunciation,source_language) VALUES (?,?,?,?,?,?)', id, phrase.translation, 'Español', 'demo', phrase.pronunciation, actor.language);
+  }
+  // Upgrade only the known canned messages previously written by fictional actors.
+  const legacyReplies = ['¡Me encanta conocer nuevas culturas! Cuéntame más sobre ti.', 'Un café y una buena conversación suenan como un gran plan ☕', '¿Qué lugar de tu país me recomendarías visitar primero?'];
+  for (const message of all('SELECT m.*,u.language,u.name FROM messages m JOIN users u ON m.sender_id=u.id WHERE u.actor=1')) {
+    let phrase = findDemoPhrase(message.language, message.text);
+    const oldReply = legacyReplies.indexOf(message.text);
+    if (oldReply >= 0) phrase = demoPhrase(message.language, oldReply + 1);
+    if (message.text.startsWith('¡Hola! Soy ') && message.text.endsWith('¿Qué es lo que más te gusta de tu ciudad?')) phrase = demoPhrase(message.language, 0);
+    if (phrase) {
+      run('UPDATE messages SET text=? WHERE id=?', phrase.original, message.id);
+      run('INSERT INTO translations (message_id,text,language,status,pronunciation,source_language) VALUES (?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET text=excluded.text,pronunciation=excluded.pronunciation,source_language=excluded.source_language,status=excluded.status', message.id, phrase.translation, 'Español', 'demo', phrase.pronunciation, message.language);
+    }
   }
   const limits = new Map();
   function limit(key, max) {
@@ -120,7 +148,7 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
       const url = new URL(req.url, 'http://localhost');
       if (!url.pathname.startsWith('/api/')) {
         assert(req.method === 'GET' || req.method === 'HEAD', 405, 'Método no permitido.');
-        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
+        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', '/language-kit.js': 'public/language-kit.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma', 'alex'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
         const file = files[url.pathname];
         assert(file, 404, 'Página no encontrada.');
         const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.png': 'image/png' };
@@ -171,8 +199,10 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
         return json(200, { ok: true });
       }
       if (path === '/api/profile' && req.method === 'PUT') {
-        const p = validateProfile(await body(req));
+        const input = await body(req);
+        const p = validateProfile({ ...input, gender: input.gender || user.gender });
         run('UPDATE users SET name=?,age=?,city=?,country=?,language=?,intention=?,bio=?,interests=? WHERE id=?', p.name, p.age, p.city, p.country, p.language, p.intention, p.bio, JSON.stringify(p.interests), user.id);
+        run('UPDATE users SET gender=? WHERE id=?', p.gender, user.id);
         return json(200, { user: publicUser(get('SELECT * FROM users WHERE id=?', user.id)) });
       }
       if (path === '/api/account' && req.method === 'DELETE') {
@@ -180,11 +210,20 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
         res.setHeader('Set-Cookie', `lingodate=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secureCookie ? '; Secure' : ''}`);
         return json(200, { ok: true });
       }
+      if (path === '/api/preferences' && req.method === 'GET') return json(200, { explorer: get('SELECT explorer FROM preferences WHERE user_id=?', user.id)?.explorer || 'viajero' });
+      if (path === '/api/preferences' && req.method === 'PUT') {
+        const input = await body(req);
+        assert(['viajero', 'viajera'].includes(input.explorer), 400, 'Elige viajero o viajera.');
+        run('INSERT INTO preferences VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET explorer=excluded.explorer', user.id, input.explorer);
+        if (user.demo && ['Viajero', 'Viajera'].includes(user.name)) run('UPDATE users SET name=? WHERE id=?', input.explorer === 'viajero' ? 'Viajero' : 'Viajera', user.id);
+        return json(200, { explorer: input.explorer });
+      }
       if (path === '/api/discover' && req.method === 'GET') {
         const profiles = all(`SELECT * FROM users u WHERE u.id!=? AND u.demo=? AND u.actor=?
-          AND NOT EXISTS(SELECT 1 FROM decisions d WHERE d.user_id=? AND d.target_id=u.id)
+          AND NOT EXISTS(SELECT 1 FROM decisions d WHERE d.user_id=? AND d.target_id=u.id AND NOT (d.liked=1 AND EXISTS(SELECT 1 FROM matches m WHERE (m.a=? AND m.b=u.id) OR (m.b=? AND m.a=u.id))))
           AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.user_id=? AND b.target_id=u.id) OR (b.target_id=? AND b.user_id=u.id))
-          AND (?='' OR u.country=?) AND (?='' OR u.language=?) AND (?='' OR u.intention=?) ORDER BY created DESC LIMIT 100`, user.id, user.demo, user.demo ? 1 : 0, user.id, user.id, user.id,
+          AND (?='' OR u.gender=?) AND (?='' OR u.country=?) AND (?='' OR u.language=?) AND (?='' OR u.intention=?) ORDER BY created DESC LIMIT 100`, user.id, user.demo, user.demo ? 1 : 0, user.id, user.id, user.id, user.id, user.id,
+          url.searchParams.get('gender') || '', url.searchParams.get('gender') || '',
           url.searchParams.get('country') || '', url.searchParams.get('country') || '',
           url.searchParams.get('language') || '', url.searchParams.get('language') || '',
           url.searchParams.get('intention') || '', url.searchParams.get('intention') || '').map(publicUser);
@@ -201,7 +240,7 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
           const [a, b] = [user.id, target.id].sort();
           run('INSERT OR IGNORE INTO matches VALUES (?,?,?,?)', randomUUID(), a, b, Date.now());
           match = get('SELECT id FROM matches WHERE a=? AND b=?', a, b);
-          if (target.actor && !get('SELECT id FROM messages WHERE match_id=?', match.id)) run('INSERT INTO messages VALUES (?,?,?,?,?)', randomUUID(), match.id, target.id, `¡Hola! Soy ${target.name}. ¿Qué es lo que más te gusta de tu ciudad?`, Date.now());
+          if (target.actor && !get('SELECT id FROM messages WHERE match_id=?', match.id)) saveDemoMessage(match.id, target, demoPhrase(target.language, 0));
         }
         return json(200, { match });
       }
@@ -228,10 +267,10 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
           run('INSERT INTO messages VALUES (?,?,?,?,?)', messageId, match.id, user.id, input.text.trim(), Date.now());
           const peer = get('SELECT * FROM users WHERE id=?', match.a === user.id ? match.b : match.a);
           if (!user.demo && translator.enabled && user.language !== peer.language) {
-            run('INSERT INTO translations VALUES (?,?,?,?)', messageId, null, peer.language, 'pending');
+            run('INSERT INTO translations (message_id,text,language,status,source_language) VALUES (?,?,?,?,?)', messageId, null, peer.language, 'pending', user.language);
             try {
-              const translated = await translator.translate(input.text.trim(), user.language, peer.language);
-              run('UPDATE translations SET text=?,status=? WHERE message_id=?', translated, translated ? 'translated' : 'unavailable', messageId);
+              const result = translator.analyze ? await translator.analyze(input.text.trim(), user.language, peer.language) : { translatedText: await translator.translate(input.text.trim(), user.language, peer.language), pronunciation: null };
+              run('UPDATE translations SET text=?,pronunciation=?,status=? WHERE message_id=?', result.translatedText, result.pronunciation, result.translatedText ? 'translated' : 'unavailable', messageId);
             } catch {
               // Deliver the original even when the provider is unavailable. Never log private text.
               run('UPDATE translations SET status=? WHERE message_id=?', 'unavailable', messageId);
@@ -241,11 +280,10 @@ export function createApp({ databasePath = process.env.DATABASE_PATH || resolve(
           }
           if (peer.actor) {
             const count = get('SELECT COUNT(*) AS n FROM messages WHERE match_id=? AND sender_id=?', match.id, user.id).n;
-            const replies = ['¡Me encanta conocer nuevas culturas! Cuéntame más sobre ti.', 'Un café y una buena conversación suenan como un gran plan ☕', '¿Qué lugar de tu país me recomendarías visitar primero?'];
-            run('INSERT INTO messages VALUES (?,?,?,?,?)', randomUUID(), match.id, peer.id, replies[(count - 1) % replies.length], Date.now());
+            saveDemoMessage(match.id, peer, demoPhrase(peer.language, 1 + (count - 1) % 3));
           }
         }
-        return json(200, { messages: all('SELECT m.id,m.sender_id AS senderId,m.text,m.created,t.text AS translatedText,t.language AS translatedLanguage,t.status AS translationStatus FROM (SELECT rowid AS seq,* FROM messages WHERE match_id=? ORDER BY created DESC,rowid DESC LIMIT 200) m LEFT JOIN translations t ON t.message_id=m.id ORDER BY m.created,m.seq', match.id) });
+        return json(200, { messages: all('SELECT m.id,m.sender_id AS senderId,m.text,m.created,t.text AS translatedText,t.language AS translatedLanguage,t.status AS translationStatus,t.pronunciation,t.source_language AS sourceLanguage FROM (SELECT rowid AS seq,* FROM messages WHERE match_id=? ORDER BY created DESC,rowid DESC LIMIT 200) m LEFT JOIN translations t ON t.message_id=m.id ORDER BY m.created,m.seq', match.id) });
       }
       if (path === '/api/blocks' && req.method === 'POST') {
         const input = await body(req);

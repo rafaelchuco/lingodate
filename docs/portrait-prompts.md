@@ -17,3 +17,9 @@ Se utilizó este marco común en una llamada independiente por personaje:
 **Yuki:** Yuki, a fictional 26-year-old adult Japanese woman living in Kyoto. Shoulder-length black hair, soft fringe, lovely natural smile, contemporary light blue casual blouse, quiet leafy Kyoto street softly blurred behind her, attractive and approachable. No costume.
 
 **Emma:** Emma, a fictional 27-year-old adult French woman living in Paris. Wavy chestnut brown shoulder-length hair, light freckles, lovely natural smile, simple cream knit top, Parisian cafe street softly blurred behind her, attractive and approachable. No beret.
+
+## Álex
+
+Archivo final: `public/portraits/alex.jpg`. Generado con Imagegen integrado; JPEG optimizado a partir del PNG original conservado en la carpeta local de generación.
+
+> Use case: photorealistic-natural. Asset: single portrait for explicitly fictional dating app character Álex, a handsome 29-year-old adult American man living in New York. Short dark blond slightly wavy hair, subtle stubble, kind natural smile, contemporary navy casual overshirt, tree-lined Brooklyn street softly blurred in the background. One invented person only, no resemblance to a named real individual. Portrait orientation 4:5, head and upper torso, full head with generous space above, shoulders in frame, realistic skin texture, warm soft afternoon daylight, editorial candid 85mm portrait photography. Charming and approachable, tasteful everyday clothing. No text, logo, border, watermark, collage or UI.

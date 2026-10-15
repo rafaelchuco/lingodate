@@ -134,9 +134,9 @@ test('demo matches and messages are simulated and isolated for each visitor', as
   assert.equal((await request(`/api/matches/${match.id}/messages`, 'GET', undefined, b.cookie)).status, 404);
   assert.equal((await request('/api/matches', 'GET', undefined, b.cookie)).body.matches.length, 0);
   await request('/api/decisions', 'POST', { targetId: 'demo-yuki', like: false }, a.cookie);
-  assert.equal((await request('/api/discover', 'GET', undefined, a.cookie)).body.profiles.length, 4);
-  await request('/api/discover/reset', 'POST', {}, a.cookie);
   assert.equal((await request('/api/discover', 'GET', undefined, a.cookie)).body.profiles.length, 5);
+  await request('/api/discover/reset', 'POST', {}, a.cookie);
+  assert.equal((await request('/api/discover', 'GET', undefined, a.cookie)).body.profiles.length, 6);
 });
 
 test('profile edits persist and credentials are hashed in the database', async t => {
@@ -206,7 +206,7 @@ test('provider failures keep the original message deliverable', async t => {
 
 test('fictional portraits and the frontend data module are available without external requests', async t => {
   const { request } = await start(t);
-  for (const person of ['sofia', 'lucas', 'yuki', 'emma']) {
+  for (const person of ['sofia', 'lucas', 'yuki', 'emma', 'alex']) {
     const image = await request(`/portraits/${person}.jpg`);
     assert.equal(image.status, 200);
     assert.match(image.headers.get('content-type'), /image\/jpeg/);
@@ -215,4 +215,81 @@ test('fictional portraits and the frontend data module are available without ext
   assert.equal(module.status, 200);
   assert.match(module.body, /export const demoProfiles/);
   assert.equal((await request('/portraits/unknown.jpg')).status, 404);
+});
+
+test('explorer choice persists independently of self-declared gender', async t => {
+  const { request, register } = await start(t);
+  const user = await register('Viajero', { gender: 'man' });
+  assert.equal((await request('/api/preferences', 'GET', undefined, user.cookie)).body.explorer, 'viajero');
+  assert.equal((await request('/api/preferences', 'PUT', { explorer: 'viajera' }, user.cookie)).status, 200);
+  assert.equal((await request('/api/preferences', 'GET', undefined, user.cookie)).body.explorer, 'viajera');
+  assert.equal((await request('/api/me', 'GET', undefined, user.cookie)).body.user.gender, 'man');
+  assert.equal((await request('/api/preferences', 'PUT', { explorer: 'invalid' }, user.cookie)).status, 400);
+  const demo = await request('/api/demo', 'POST', {});
+  await request('/api/preferences', 'PUT', { explorer: 'viajera' }, demo.cookie);
+  assert.equal((await request('/api/me', 'GET', undefined, demo.cookie)).body.user.name, 'Viajera');
+});
+
+test('discovery filters declared genders and keeps Kasia visible once matched', async t => {
+  const { request } = await start(t);
+  const user = await request('/api/demo', 'POST', {});
+  const women = (await request('/api/discover?gender=woman', 'GET', undefined, user.cookie)).body.profiles;
+  assert.deepEqual(women.map(p => p.name).sort(), ['Emma', 'Kasia', 'Sofía', 'Yuki']);
+  const men = (await request('/api/discover?gender=man', 'GET', undefined, user.cookie)).body.profiles;
+  assert.deepEqual(men.map(p => p.name).sort(), ['Lucas', 'Álex']);
+  const match = (await request('/api/decisions', 'POST', { targetId: 'demo-kasia', like: true }, user.cookie)).body.match;
+  const after = (await request('/api/discover?gender=woman&country=Polonia', 'GET', undefined, user.cookie)).body.profiles;
+  assert.equal(after.length, 1); assert.equal(after[0].id, 'demo-kasia');
+  assert.equal((await request('/api/matches', 'GET', undefined, user.cookie)).body.matches[0].id, match.id);
+  await request('/api/blocks', 'POST', { targetId: 'demo-kasia' }, user.cookie);
+  assert.equal((await request('/api/discover?gender=woman&country=Polonia', 'GET', undefined, user.cookie)).body.profiles.length, 0);
+});
+
+test('demo incoming messages contain a native original, pronunciation and Spanish translation', async t => {
+  const { request } = await start(t);
+  const demo = await request('/api/demo', 'POST', {});
+  for (const actor of ['kasia', 'yuki', 'lucas', 'emma', 'alex', 'sofia']) {
+    const match = (await request('/api/decisions', 'POST', { targetId: 'demo-' + actor, like: true }, demo.cookie)).body.match;
+    const first = (await request(`/api/matches/${match.id}/messages`, 'GET', undefined, demo.cookie)).body.messages[0];
+    assert.ok(first.pronunciation); assert.ok(first.translatedText); assert.ok(first.sourceLanguage);
+    assert.equal(first.translatedLanguage, 'Español'); assert.equal(first.translationStatus, 'demo');
+    if (actor !== 'sofia') assert.notEqual(first.text, first.translatedText);
+    if (actor === 'yuki') assert.match(first.text, /こんにちは/);
+    const reply = (await request(`/api/matches/${match.id}/messages`, 'POST', { text: 'Hola' }, demo.cookie)).body.messages.at(-1);
+    assert.ok(reply.pronunciation); assert.equal(reply.translationStatus, 'demo');
+  }
+});
+
+test('structured pronunciation provider persists the reading of the original', async t => {
+  const translator = { enabled: true, host: 'api.openai.com', analyze: async () => ({ translatedText: 'Hola', pronunciation: 'Jelóu' }) };
+  const { request, register } = await start(t, { translator });
+  const a = await register('Alex', { language: 'Inglés', gender: 'man' }), b = await register('Maria', { gender: 'woman' });
+  await request('/api/decisions', 'POST', { targetId: b.id, like: true }, a.cookie);
+  const match = (await request('/api/decisions', 'POST', { targetId: a.id, like: true }, b.cookie)).body.match;
+  const sent = await request(`/api/matches/${match.id}/messages`, 'POST', { text: 'Hello' }, a.cookie);
+  assert.equal(sent.body.messages[0].text, 'Hello');
+  assert.equal(sent.body.messages[0].pronunciation, 'Jelóu');
+  assert.equal(sent.body.messages[0].translatedText, 'Hola');
+  assert.equal(sent.body.messages[0].sourceLanguage, 'Inglés');
+  assert.equal(sent.body.messages[0].translatedLanguage, 'Español');
+});
+
+test('additive migrations keep legacy profiles and restore persisted explorer preferences', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'lingodate-migration-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const databasePath = join(dir, 'legacy.sqlite');
+  const { DatabaseSync } = await import('node:sqlite');
+  const legacy = new DatabaseSync(databasePath);
+  legacy.exec(`CREATE TABLE users (id TEXT PRIMARY KEY,email TEXT UNIQUE,password TEXT,salt TEXT,name TEXT NOT NULL,age INTEGER NOT NULL,city TEXT NOT NULL,country TEXT NOT NULL,language TEXT NOT NULL,intention TEXT NOT NULL,bio TEXT NOT NULL,interests TEXT NOT NULL,demo INTEGER NOT NULL DEFAULT 0,actor INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL); CREATE TABLE translations(message_id TEXT PRIMARY KEY,text TEXT,language TEXT NOT NULL,status TEXT NOT NULL);`);
+  legacy.prepare('INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run('legacy-profile', null, null, null, 'Perfil anterior', 28, 'Lima', 'Perú', 'Español', 'Amistad', 'Este perfil debe conservarse.', '[]', 1, 0, Date.now());
+  legacy.close();
+  const first = await start(t, { databasePath });
+  const demo = await first.request('/api/demo', 'POST', {});
+  await first.request('/api/preferences', 'PUT', { explorer: 'viajera' }, demo.cookie);
+  const second = await start(t, { databasePath });
+  assert.equal((await second.request('/api/preferences', 'GET', undefined, demo.cookie)).body.explorer, 'viajera');
+  const check = new DatabaseSync(databasePath);
+  assert.equal(check.prepare('SELECT name,gender FROM users WHERE id=?').get('legacy-profile').name, 'Perfil anterior');
+  assert.ok(check.prepare('PRAGMA table_info(translations)').all().some(c => c.name === 'pronunciation'));
+  check.close();
 });

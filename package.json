@@ -11,6 +11,6 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test",
-    "check": "node --check server.js && node --check translation.js && node --check public/app.js && node --check public/demo-profiles.js"
+    "check": "node --check server.js && node --check translation.js && node --check public/app.js && node --check public/demo-profiles.js && node --check public/language-kit.js"
   }
 }
