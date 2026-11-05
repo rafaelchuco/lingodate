@@ -1,17 +1,17 @@
 {
-  "name": "lingodate",
+  "name": "lingolite",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "MVP de conexiones interculturales con perfiles, matches y chat persistente",
+  "description": "Videollamadas privadas para dos personas con subtítulos y chat en español y alemán",
   "engines": {
     "node": "24.x"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "node lite-server.js",
+    "dev": "node --watch lite-server.js",
     "test": "node --test",
-    "check": "node --check server.js && node --check translation.js && node --check public/app.js && node --check public/demo-profiles.js && node --check public/language-kit.js && node --check database.js && node --check api/index.js",
+    "check": "node --check lite-server.js && node --check public/lite/app.js && node --check public/lite/call.js && node --check database.js && node --check api/index.js",
     "build": "node scripts/build.mjs"
   },
   "dependencies": {

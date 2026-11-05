@@ -1,22 +1,18 @@
 <!doctype html>
-<html lang="es" data-theme="dark">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#15120f">
-  <meta name="description" content="Conoce personas de otras culturas. Descubre perfiles, conecta y conversa con LingōDate.">
-  <title>LingōDate — Conecta sin fronteras</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" type="module"></script>
+  <meta name="theme-color" content="#081426">
+  <meta name="description" content="LingoLite: videollamadas privadas con subtítulos en español y alemán.">
+  <title>LingoLite — Habla en tu idioma</title>
+  <link rel="icon" href="/lite/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/lite/styles.css">
+  <script type="module" src="/lite/app.js"></script>
 </head>
 <body>
-  <a href="#content" class="skip">Saltar al contenido</a>
-  <div id="app"><main class="loading">Preparando tu próxima conexión…</main></div>
-  <div id="toast" role="status" aria-live="polite"></div>
-  <dialog id="match-dialog" aria-labelledby="match-title"></dialog>
-  <dialog id="profile-dialog" class="profile-dialog" aria-labelledby="detail-title"></dialog>
-  <dialog id="planner-dialog" class="planner-dialog" aria-labelledby="planner-title"></dialog>
-  <noscript>Activa JavaScript para usar LingōDate.</noscript>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <div id="app"><main id="contenido" class="shell loading">Abriendo LingoLite…</main></div>
+  <div id="toast" class="toast" role="status"></div>
 </body>
 </html>

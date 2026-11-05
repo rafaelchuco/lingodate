@@ -1,4 +1,4 @@
-import { createApp } from '../server.js';
+import { createApp } from '../lite-server.js';
 
 export function createHandler(appFactory = createApp) {
   let application;
@@ -10,7 +10,7 @@ export function createHandler(appFactory = createApp) {
       await app.listeners('request')[0](req, res);
     } catch (error) {
       application = undefined;
-      console.error('Lingodate startup failed:', error.code || error.status || error.name);
+      console.error('LingoLite startup failed:', error.code || error.status || error.name);
       if (!res.headersSent) {
         res.writeHead(error.status || 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: error.status === 503 ? error.message : 'No se pudo conectar con la base de datos del despliegue. Revisa su configuración.' }));

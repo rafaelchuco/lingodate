@@ -163,7 +163,7 @@ export async function createApp({ databasePath = process.env.DATABASE_PATH || re
       const url = new URL(req.url, 'http://localhost');
       if (!url.pathname.startsWith('/api/')) {
         assert(req.method === 'GET' || req.method === 'HEAD', 405, 'Método no permitido.');
-        const files = { '/': 'index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', '/language-kit.js': 'public/language-kit.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma', 'alex', 'lisa', 'emma-reference'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
+        const files = { '/': 'legacy-index.html', '/app.js': 'public/app.js', '/styles.css': 'public/styles.css', '/kasia.jpg': 'public/kasia.jpg', '/favicon.svg': 'public/favicon.svg', '/demo-profiles.js': 'public/demo-profiles.js', '/language-kit.js': 'public/language-kit.js', ...Object.fromEntries(['sofia', 'lucas', 'yuki', 'emma', 'alex', 'lisa', 'emma-reference'].map(name => [`/portraits/${name}.jpg`, `public/portraits/${name}.jpg`])) };
         const file = files[url.pathname];
         assert(file, 404, 'Página no encontrada.');
         const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.png': 'image/png' };

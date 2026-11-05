@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { createApp } from '../server.js';
+import { createApp } from '../lite-server.js';
 import { createHandler } from '../api/index.js';
 import { openDatabase } from '../database.js';
 
@@ -27,12 +27,12 @@ test('Vercel adapter accepts an already-parsed body, reuses the app and preserve
     }
     await handler(req, res);
   });
-  const first = await fetch(base + '/api/demo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  const first = await fetch(base + '/api/guest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Mariana', language: 'es' }) });
   assert.equal(first.status, 200); assert.match(first.headers.get('set-cookie'), /Secure/);
   const cookie = first.headers.get('set-cookie').split(';')[0];
-  const response = await fetch(base + '/api/discover?gender=woman', { headers: { Cookie: cookie } });
+  const response = await fetch(base + '/api/me', { headers: { Cookie: cookie } });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).profiles.length, 4);
+  assert.equal((await response.json()).user.language, 'es');
   assert.equal(starts, 1);
 });
 
@@ -56,7 +56,7 @@ test('serverless deployments never silently create an ephemeral database', async
 
 test('the Vercel output contains the entry page and assets, excluding source, secrets and databases', () => {
   execFileSync(process.execPath, ['scripts/build.mjs']);
-  assert.match(readFileSync('dist/index.html', 'utf8'), /LingōDate/);
-  for (const file of ['app.js', 'styles.css', 'demo-profiles.js', 'language-kit.js', 'portraits/sofia.jpg', 'portraits/lisa.jpg']) assert.ok(existsSync('dist/' + file));
-  for (const file of ['server.js', 'database.js', '.env', 'data/lingodate.sqlite', 'package.json']) assert.equal(existsSync('dist/' + file), false);
+  assert.match(readFileSync('dist/index.html', 'utf8'), /LingoLite/);
+  for (const file of ['lite/app.js', 'lite/call.js', 'lite/styles.css', 'lite/mark.svg']) assert.ok(existsSync('dist/' + file));
+  for (const file of ['lite-server.js', 'legacy-index.html', 'app.js', 'portraits/sofia.jpg', 'database.js', '.env', 'data/lingolite.sqlite', 'package.json']) assert.equal(existsSync('dist/' + file), false);
 });
